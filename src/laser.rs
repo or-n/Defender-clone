@@ -12,70 +12,49 @@ pub struct Bundle {
     scroll: map::Scroll,
 }
 
-pub fn sprite(
-    assets: &Res<GameAssets>,
-    position: Vec3,
-    rotation: f32,
-    color: Color,
-    scale: f32,
-) -> SpriteBundle {
-    SpriteBundle {
-        transform: Transform {
-            translation: position,
-            rotation: utils::bevy::angle(0.25 + rotation),
-            scale: (style::LASER_SCALE * scale).extend(1.0),
-            ..default()
-        },
-        texture: assets.laser_texture.clone(),
-        sprite: Sprite { color, ..default() },
-        ..default()
-    }
-}
-
-pub fn orb_sprite(
-    assets: &Res<GameAssets>,
-    position: Vec3,
-    rotation: f32,
-    color: Color,
-    scale: f32,
-) -> SpriteBundle {
-    SpriteBundle {
-        transform: Transform {
-            translation: position,
-            rotation: utils::bevy::angle(rotation),
-            scale: (style::ORB_SCALE * scale).extend(1.0),
-            ..default()
-        },
-        texture: assets.orb_texture.clone(),
-        sprite: Sprite { color, ..default() },
-        ..default()
-    }
-}
-
 impl Bundle {
     pub fn new(
         assets: &Res<GameAssets>,
-        position: Vec3,
+        translation: Vec3,
         angle: f32,
         speed: f32,
         color: Color,
         is_laser: bool,
         is_damaging: bool,
     ) -> Bundle {
-        let scale = if is_damaging { 1.0 } else { 0.2 };
+        let (bound, texture, rotation, scale) = if is_laser {
+            (
+                style::LASER_BOUND,
+                assets.laser_texture.clone(),
+                angle + 0.25,
+                style::LASER_SCALE,
+            )
+        } else {
+            (
+                style::ORB_BOUND,
+                assets.orb_texture.clone(),
+                angle,
+                style::ORB_SCALE,
+            )
+        };
+        let transform = Transform {
+            translation,
+            rotation: utils::bevy::angle(rotation),
+            scale: (scale * if is_damaging { 1.0 } else { 0.2 }).extend(1.0),
+            ..default()
+        };
         Bundle {
             projectile: Projectile {
                 velocity: utils::bevy::clock(angle).extend(0.0) * speed,
-                bound: if is_laser {
-                    style::LASER_BOUND
-                } else {
-                    style::ORB_BOUND
-                },
+                bound,
                 is_damaging,
             },
-            sprite_bundle: if is_laser { sprite } else { orb_sprite }(
-                &assets, position, angle, color, scale,
-            ),
+            sprite_bundle: SpriteBundle {
+                transform,
+                texture,
+                sprite: Sprite { color, ..default() },
+                ..default()
+            },
             scroll: map::Scroll,
         }
     }
@@ -98,13 +77,11 @@ fn despawn_outside_window(
     window_query: Query<&Window, With<PrimaryWindow>>,
     mut commands: Commands,
 ) {
-    let window = window_query.get_single().unwrap();
-    let camera_position = camera_query.get_single().unwrap().translation;
-    let window_bound = utils::bevy::size(window);
+    let window = window_query.single();
     for (entity, transform) in query.iter() {
         if let None = collide(
-            camera_position,
-            window_bound,
+            camera_query.single().translation,
+            utils::bevy::size(window),
             transform.translation,
             style::LASER_BOUND,
         ) {
