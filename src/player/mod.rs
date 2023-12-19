@@ -83,7 +83,7 @@ const HORIZONTAL_SPEED: f32 = 400.0;
 const VERTICAL_SPEED: f32 = 200.0;
 
 const ACCELERATION: f32 = 1600.0;
-const DECELERATION: f32 = 10.0;
+const DECELERATION: f32 = 100.0;
 
 fn movement(
     mut player_query: Query<(&mut Transform, &mut Player)>,
@@ -160,8 +160,10 @@ fn laser_hit(
                 laser.translation,
                 projectile.bound,
                 camera_query.single().translation,
-                window_query.single().width(),
-            ) {
+                utils::bevy::size(window_query.single()),
+            )
+            .is_some()
+            {
                 commands.entity(player_entity).despawn();
                 explosion_event.send(explosion::At {
                     position: player.translation,

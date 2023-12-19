@@ -227,8 +227,10 @@ fn laser_hit(
                 laser.translation,
                 projectile.bound,
                 camera_query.single().translation,
-                window_query.single().width(),
-            ) {
+                utils::bevy::size(window_query.single()),
+            )
+            .is_some()
+            {
                 score.value += 1;
                 commands.entity(enemy_entity).despawn();
                 enemies.count -= 1;
