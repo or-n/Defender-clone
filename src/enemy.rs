@@ -1,6 +1,9 @@
 use bevy::{prelude::*, sprite::collide_aabb::collide, window::PrimaryWindow};
 
-use crate::{explosion, game_over, laser, map, minimap, player, score, style, utils};
+use crate::{
+    assets::{self, GameAssets},
+    explosion, game_over, laser, map, minimap, player, score, style, utils,
+};
 use game_over::GameOver;
 use player::Player;
 use projectile::Projectile;
@@ -59,9 +62,10 @@ fn shoot_player(
     player_query: Query<&Transform, With<Player>>,
     window_query: Query<&Window, With<PrimaryWindow>>,
     camera_query: Query<&Transform, With<Camera>>,
-    asset_server: Res<AssetServer>,
+    assets: Res<GameAssets>,
     mut commands: Commands,
     time: Res<Time>,
+    asset_server: Res<AssetServer>,
 ) {
     let elapsed = time.elapsed_seconds();
     let window = window_query.single();
@@ -87,7 +91,7 @@ fn shoot_player(
                     false,
                     true,
                 ));
-                commands.spawn(laser::audio(&asset_server));
+                commands.spawn(assets::audio(assets.laser_audio.clone()));
                 enemy.next_shot = elapsed + 4.0;
             }
         }
@@ -147,7 +151,7 @@ fn try_drawing_on_minimap(
 
 fn spawn_enemies(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
+    assets: Res<GameAssets>,
     window_query: Query<&Window, With<PrimaryWindow>>,
     camera_query: Query<&Transform, With<Camera>>,
     mut enemies: ResMut<EnemiesCount>,
@@ -167,7 +171,7 @@ fn spawn_enemies(
         enemies.wave += 1;
     }
     commands.spawn(AudioBundle {
-        source: asset_server.load(style::BEGIN_SOUND),
+        source: assets.begin_wave_audio.clone(),
         settings: PlaybackSettings::DESPAWN.with_volume(utils::bevy::volume(style::VOICE_VOLUME)),
     });
     for _ in 0..enemies.wave.min(style::MAX_ENEMY_COUNT) {
@@ -186,7 +190,7 @@ fn spawn_enemies(
                     scale: style::ENEMY_SCALE.extend(1.0),
                     ..default()
                 },
-                texture: asset_server.load(style::ENEMY_TEXTURE),
+                texture: assets.enemy_texture.clone(),
                 ..default()
             },
             Enemy {

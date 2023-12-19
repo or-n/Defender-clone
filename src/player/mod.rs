@@ -1,6 +1,9 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 
-use crate::{camera, explosion, game_over, laser, map, minimap, style, utils};
+use crate::{
+    assets::{self, GameAssets},
+    camera, explosion, game_over, laser, map, minimap, style, utils,
+};
 use game_over::GameOver;
 use projectile::Projectile;
 use utils::bevy::{hit::hit, projectile, state::Simulation};
@@ -112,6 +115,7 @@ const SHOOT_DELAY: f32 = 0.2; //0.04;//0.1;
 fn try_shooting(
     mut player_query: Query<(&Transform, &mut Player)>,
     mut commands: Commands,
+    assets: Res<GameAssets>,
     asset_server: Res<AssetServer>,
     time: Res<Time>,
     controls: Res<input::Controls>,
@@ -119,7 +123,7 @@ fn try_shooting(
     let elapsed = time.elapsed_seconds();
     if let Ok((transform, mut player)) = player_query.get_single_mut() {
         if controls.shoot && player.next_shot_time <= elapsed {
-            commands.spawn(laser::audio(&asset_server));
+            commands.spawn(assets::audio(assets.laser_audio.clone()));
             let angle = match player.facing {
                 Side::Left => 0.5,
                 Side::Right => 0.0,

@@ -1,11 +1,7 @@
-use bevy::{
-    prelude::*,
-    sprite::collide_aabb::collide,
-    window::PrimaryWindow,
-};
+use bevy::{prelude::*, sprite::collide_aabb::collide, window::PrimaryWindow};
 
-use crate::{style, utils, map};
-use utils::bevy::{state::Simulation, projectile::Projectile};
+use crate::{map, style, utils};
+use utils::bevy::{projectile::Projectile, state::Simulation};
 
 pub const SPEED: f32 = 2400.0;
 
@@ -31,10 +27,7 @@ pub fn sprite(
             ..default()
         },
         texture: asset_server.load(style::LASER_TEXTURE),
-        sprite: Sprite {
-            color,
-            ..default()
-        },
+        sprite: Sprite { color, ..default() },
         ..default()
     }
 }
@@ -54,10 +47,7 @@ pub fn orb_sprite(
             ..default()
         },
         texture: asset_server.load(style::ORB_TEXTURE),
-        sprite: Sprite {
-            color,
-            ..default()
-        },
+        sprite: Sprite { color, ..default() },
         ..default()
     }
 }
@@ -83,7 +73,7 @@ impl Bundle {
                 },
                 is_damaging,
             },
-            sprite_bundle: if is_laser { sprite } else { orb_sprite } (
+            sprite_bundle: if is_laser { sprite } else { orb_sprite }(
                 &asset_server,
                 position,
                 angle,
@@ -99,19 +89,10 @@ pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update,
-            despawn_outside_window.run_if(in_state(Simulation::Running))
+        app.add_systems(
+            Update,
+            despawn_outside_window.run_if(in_state(Simulation::Running)),
         );
-    }
-}
-
-pub fn audio(
-    asset_server: &Res<AssetServer>,
-) -> AudioBundle {
-    AudioBundle {
-        source: asset_server.load(style::LASER_SOUND),
-        settings: PlaybackSettings::DESPAWN
-            .with_volume(utils::bevy::volume(style::VOLUME)),
     }
 }
 
@@ -129,7 +110,7 @@ fn despawn_outside_window(
             camera_position,
             window_bound,
             transform.translation,
-            style::LASER_BOUND
+            style::LASER_BOUND,
         ) {
             commands.entity(entity).despawn();
         }
