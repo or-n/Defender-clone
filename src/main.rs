@@ -1,5 +1,3 @@
-#![windows_subsystem = "windows"]
-
 use bevy::{
     prelude::*,
     app::AppExit,
