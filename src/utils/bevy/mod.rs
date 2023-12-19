@@ -1,15 +1,19 @@
 use bevy::{
+    audio::{Volume, VolumeLevel},
     prelude::*,
-    audio::{VolumeLevel, Volume},
 };
 
 use std::f32::consts::TAU;
 
-pub mod state;
+pub mod hit;
 pub mod projectile;
+pub mod state;
 
 pub fn size(window: &Window) -> Vec2 {
-    Vec2 { x: window.width(), y: window.height() }
+    Vec2 {
+        x: window.width(),
+        y: window.height(),
+    }
 }
 
 pub fn grey(v: f32, alpha: f32) -> Color {
@@ -17,7 +21,12 @@ pub fn grey(v: f32, alpha: f32) -> Color {
 }
 
 pub fn bloom_hue(hue: f32) -> Color {
-    Color::Hsla { hue, saturation: 1.0, lightness: 2.0, alpha: 1.0 }
+    Color::Hsla {
+        hue,
+        saturation: 1.0,
+        lightness: 2.0,
+        alpha: 1.0,
+    }
 }
 
 pub fn volume(level: f32) -> Volume {
@@ -37,8 +46,7 @@ pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
-        app
-            .add_plugins((state::Plug, projectile::Plug))
+        app.add_plugins((state::Plug, projectile::Plug))
             .add_systems(PreUpdate, try_despawning)
             .add_systems(PostUpdate, (follow, try_despawning));
     }
@@ -64,14 +72,10 @@ fn follow(
 
 #[derive(Component)]
 pub struct DespawnTime {
-    pub elapsed_seconds: f32
+    pub elapsed_seconds: f32,
 }
 
-fn try_despawning(
-    mut commands: Commands,
-    query: Query<(Entity, &DespawnTime)>,
-    time: Res<Time>,
-) {
+fn try_despawning(mut commands: Commands, query: Query<(Entity, &DespawnTime)>, time: Res<Time>) {
     for (entity, despawn_time) in query.iter() {
         if time.elapsed_seconds() >= despawn_time.elapsed_seconds {
             commands.entity(entity).despawn_recursive();

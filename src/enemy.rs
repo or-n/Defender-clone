@@ -1,15 +1,11 @@
-use bevy::{
-    prelude::*,
-    sprite::collide_aabb::collide,
-    window::PrimaryWindow,
-};
+use bevy::{prelude::*, sprite::collide_aabb::collide, window::PrimaryWindow};
 
-use crate::{map, style, utils, minimap, player, score, explosion, laser, game_over};
-use utils::bevy::{state::Simulation, projectile};
-use projectile::Projectile;
-use player::Player;
-use score::Score;
+use crate::{explosion, game_over, laser, map, minimap, player, score, style, utils};
 use game_over::GameOver;
+use player::Player;
+use projectile::Projectile;
+use score::Score;
+use utils::bevy::{hit::hit, projectile, state::Simulation};
 
 #[derive(Component)]
 pub struct Enemy {
@@ -30,22 +26,25 @@ pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
-        app
-            .insert_resource(EnemiesCount { count: 0, wave: 0 })
+        app.insert_resource(EnemiesCount { count: 0, wave: 0 })
             .add_plugins(score::Plug)
-            .add_systems(Update,
+            .add_systems(
+                Update,
                 (
                     movement,
                     laser_hit,
                     player_hit,
                     shoot_player.after(movement),
                 )
-                    .run_if(in_state(Simulation::Running))
+                    .run_if(in_state(Simulation::Running)),
             )
-            .add_systems(PostUpdate, (
-                try_drawing_on_minimap,
-                spawn_enemies.run_if(in_state(Simulation::Running))
-            ));
+            .add_systems(
+                PostUpdate,
+                (
+                    try_drawing_on_minimap,
+                    spawn_enemies.run_if(in_state(Simulation::Running)),
+                ),
+            );
     }
 }
 
@@ -65,8 +64,8 @@ fn shoot_player(
     time: Res<Time>,
 ) {
     let elapsed = time.elapsed_seconds();
-    let window = window_query.get_single().unwrap();
-    let camera_position = camera_query.get_single().unwrap().translation;
+    let window = window_query.single();
+    let camera_position = camera_query.single().translation;
     if let Ok(player_transform) = player_query.get_single() {
         let player_position = player_transform.translation;
         for (transform, mut enemy) in query.iter_mut() {
@@ -74,13 +73,11 @@ fn shoot_player(
             let d = player_position - position;
             let d = Vec2::new(d.x, d.y).normalize();
             let angle = Vec2::X.angle_between(d) / 3.14 * 0.5;
-            //let see_player = (position - player_position).length() < 500.0;
             let visible = visible(position.x, camera_position.x, window.width());
             if !visible {
                 enemy.last_outside = elapsed;
             }
-            if enemy.next_shot < elapsed
-            && enemy.last_outside + 0.5 < elapsed {
+            if enemy.next_shot < elapsed && enemy.last_outside + 0.5 < elapsed {
                 commands.spawn(laser::Bundle::new(
                     &asset_server,
                     position + d.extend(0.0) * 50.0,
@@ -104,7 +101,7 @@ fn movement(
     map_scroll: Res<map::MapScroll>,
 ) {
     let elapsed = time.elapsed_seconds();
-    let window = window_query.get_single().unwrap();
+    let window = window_query.single();
     for (mut transform, mut enemy) in query.iter_mut() {
         if enemy.next_desired_position < elapsed {
             let dx = (rand::random::<f32>() * 2.0 - 1.0) * 800.0;
@@ -161,8 +158,8 @@ fn spawn_enemies(
     if enemies.count > 0 || player_query.get_single().is_err() {
         return;
     }
-    let window = window_query.get_single().unwrap();
-    let camera_position = camera_query.get_single().unwrap().translation;
+    let window = window_query.single();
+    let camera_position = camera_query.single().translation;
     score.value += enemies.wave * 10;
     if enemies.wave == 0 {
         enemies.wave = style::MIN_ENEMY_COUNT;
@@ -171,8 +168,7 @@ fn spawn_enemies(
     }
     commands.spawn(AudioBundle {
         source: asset_server.load(style::BEGIN_SOUND),
-        settings: PlaybackSettings::DESPAWN
-            .with_volume(utils::bevy::volume(style::VOICE_VOLUME)),
+        settings: PlaybackSettings::DESPAWN.with_volume(utils::bevy::volume(style::VOICE_VOLUME)),
     });
     for _ in 0..enemies.wave.min(style::MAX_ENEMY_COUNT) {
         let mut x = rand::random::<f32>() * map::SIZE;
@@ -209,8 +205,7 @@ fn spawn_enemies(
 
 fn laser_hit(
     query: Query<(Entity, &Transform), With<Enemy>>,
-    laser_query: Query<(Entity, &Transform, &Projectile), 
-        Without<Enemy>>,
+    laser_query: Query<(Entity, &Transform, &Projectile), Without<Enemy>>,
     mut commands: Commands,
     mut score: ResMut<Score>,
     camera_query: Query<&Transform, With<Camera>>,
@@ -223,19 +218,19 @@ fn laser_hit(
             if !projectile.is_damaging {
                 continue;
             }
-            if projectile::hit(
+            if hit(
                 enemy.translation,
                 style::ENEMY_BOUND,
                 laser.translation,
-                projectile,
-                camera_query.get_single().unwrap().translation,
-                window_query.get_single().unwrap().width(),
+                projectile.bound,
+                camera_query.single().translation,
+                window_query.single().width(),
             ) {
                 score.value += 1;
                 commands.entity(enemy_entity).despawn();
                 enemies.count -= 1;
                 explosion_event.send(explosion::At {
-                    position: enemy.translation
+                    position: enemy.translation,
                 });
                 break;
             }
@@ -259,16 +254,16 @@ fn player_hit(
                 player_position,
                 style::PLAYER_BOUND,
                 enemy_position,
-                style::ENEMY_BOUND
+                style::ENEMY_BOUND,
             ) {
                 commands.entity(player_entity).despawn();
                 commands.entity(enemy_entity).despawn();
                 enemies.count -= 1;
                 explosion_event.send(explosion::At {
-                    position: player_position
+                    position: player_position,
                 });
                 explosion_event.send(explosion::At {
-                    position: enemy_position
+                    position: enemy_position,
                 });
                 game_over_event.send(GameOver);
                 break;

@@ -1,13 +1,10 @@
-use bevy::{
-    prelude::*,
-    window::PrimaryWindow,
-};
+use bevy::{prelude::*, window::PrimaryWindow};
 
-use crate::{laser, minimap, style, camera, utils, explosion, map, game_over};
-use utils::{Side, range::Range};
-use utils::bevy::{state::Simulation, projectile};
-use projectile::Projectile;
+use crate::{camera, explosion, game_over, laser, map, minimap, style, utils};
 use game_over::GameOver;
+use projectile::Projectile;
+use utils::bevy::{hit::hit, projectile, state::Simulation};
+use utils::{range::Range, Side};
 
 mod input;
 mod thrust;
@@ -23,13 +20,17 @@ pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
-        app
-            .add_plugins((input::Plug, thrust::Plug))
-            .add_systems(Update, (
-                (laser_hit, movement, try_shooting, camera::follow_player)
-                    .chain().run_if(in_state(Simulation::Running)),
-                minimap::redraw
-            ).chain())
+        app.add_plugins((input::Plug, thrust::Plug))
+            .add_systems(
+                Update,
+                (
+                    (laser_hit, movement, try_shooting, camera::follow_player)
+                        .chain()
+                        .run_if(in_state(Simulation::Running)),
+                    minimap::redraw,
+                )
+                    .chain(),
+            )
             .add_systems(PostUpdate, try_drawing_on_minimap);
     }
 }
@@ -102,12 +103,11 @@ fn movement(
             Range { start, end }.step(DECELERATION * time.delta_seconds())
         };
         let dy = controls.vertical() * VERTICAL_SPEED;
-        transform.translation += time.delta_seconds()
-            * Vec3::new(player.horizontal_speed, dy, 0.0);
+        transform.translation += time.delta_seconds() * Vec3::new(player.horizontal_speed, dy, 0.0);
     }
 }
 
-const SHOOT_DELAY: f32 = 0.2;//0.04;//0.1;
+const SHOOT_DELAY: f32 = 0.2; //0.04;//0.1;
 
 fn try_shooting(
     mut player_query: Query<(&Transform, &mut Player)>,
@@ -145,8 +145,7 @@ fn try_shooting(
 
 fn laser_hit(
     query: Query<(Entity, &Transform), With<Player>>,
-    laser_query: Query<(Entity, &Transform, &Projectile),
-        Without<Player>>,
+    laser_query: Query<(Entity, &Transform, &Projectile), Without<Player>>,
     mut commands: Commands,
     camera_query: Query<&Transform, With<Camera>>,
     window_query: Query<&Window, With<PrimaryWindow>>,
@@ -158,17 +157,17 @@ fn laser_hit(
             if !projectile.is_damaging {
                 continue;
             }
-            if projectile::hit(
+            if hit(
                 player.translation,
                 style::PLAYER_BOUND,
                 laser.translation,
-                projectile,
-                camera_query.get_single().unwrap().translation,
-                window_query.get_single().unwrap().width(),
+                projectile.bound,
+                camera_query.single().translation,
+                window_query.single().width(),
             ) {
                 commands.entity(player_entity).despawn();
                 explosion_event.send(explosion::At {
-                    position: player.translation
+                    position: player.translation,
                 });
                 game_over_event.send(GameOver);
                 break;

@@ -1,5 +1,5 @@
-pub mod range;
 pub mod bevy;
+pub mod range;
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum Side {
@@ -18,7 +18,11 @@ impl Side {
 
 pub fn my_fract(x: f32) -> f32 {
     let n = x.fract();
-    if n >= 0.0 { n } else { 1.0 + n }
+    if n >= 0.0 {
+        n
+    } else {
+        1.0 + n
+    }
 }
 
 pub fn variant(path_extension: (&str, &str), index: String) -> String {
