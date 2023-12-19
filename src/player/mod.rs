@@ -116,7 +116,6 @@ fn try_shooting(
     mut player_query: Query<(&Transform, &mut Player)>,
     mut commands: Commands,
     assets: Res<GameAssets>,
-    asset_server: Res<AssetServer>,
     time: Res<Time>,
     controls: Res<input::Controls>,
 ) {
@@ -134,13 +133,7 @@ fn try_shooting(
             let speed = laser::SPEED;
             let color = utils::bevy::bloom_hue((elapsed * 120.0) % 360.0);
             commands.spawn(laser::Bundle::new(
-                &asset_server,
-                position,
-                angle,
-                speed,
-                color,
-                true,
-                true,
+                &assets, position, angle, speed, color, true, true,
             ));
             player.next_shot_time = elapsed + SHOOT_DELAY;
         }

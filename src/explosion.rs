@@ -1,5 +1,5 @@
+use crate::{assets::GameAssets, laser, style, utils};
 use bevy::prelude::*;
-use crate::{utils, laser, style};
 
 #[derive(Event)]
 pub struct At {
@@ -16,13 +16,13 @@ impl Plugin for Plug {
 
 fn try_spawning(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
+    assets: Res<GameAssets>,
     time: Res<Time>,
     mut event: EventReader<At>,
 ) {
     for explosion in event.read() {
         commands.spawn(AudioBundle {
-            source: asset_server.load(style::COLLISION_SOUND),
+            source: assets.collision_audio.clone(),
             settings: PlaybackSettings::DESPAWN
                 .with_volume(utils::bevy::volume(style::EXPLOSION_VOLUME)),
         });
@@ -34,7 +34,7 @@ fn try_spawning(
             let hue = rand::random::<f32>() * 360.0;
             commands.spawn((
                 laser::Bundle::new(
-                    &asset_server,
+                    &assets,
                     explosion.position + clock * style::ORB_BOUND.x * 0.5,
                     angle,
                     speed,
@@ -43,7 +43,7 @@ fn try_spawning(
                     false,
                 ),
                 utils::bevy::DespawnTime {
-                    elapsed_seconds: time.elapsed_seconds() + 0.5
+                    elapsed_seconds: time.elapsed_seconds() + 0.5,
                 },
             ));
         }

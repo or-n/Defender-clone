@@ -65,7 +65,6 @@ fn shoot_player(
     assets: Res<GameAssets>,
     mut commands: Commands,
     time: Res<Time>,
-    asset_server: Res<AssetServer>,
 ) {
     let elapsed = time.elapsed_seconds();
     let window = window_query.single();
@@ -83,7 +82,7 @@ fn shoot_player(
             }
             if enemy.next_shot < elapsed && enemy.last_outside + 0.5 < elapsed {
                 commands.spawn(laser::Bundle::new(
-                    &asset_server,
+                    &assets,
                     position + d.extend(0.0) * 50.0,
                     angle,
                     300.0,

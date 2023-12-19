@@ -1,6 +1,6 @@
 use bevy::{prelude::*, sprite::collide_aabb::collide, window::PrimaryWindow};
 
-use crate::{map, style, utils};
+use crate::{assets::GameAssets, map, style, utils};
 use utils::bevy::{projectile::Projectile, state::Simulation};
 
 pub const SPEED: f32 = 2400.0;
@@ -13,7 +13,7 @@ pub struct Bundle {
 }
 
 pub fn sprite(
-    asset_server: &Res<AssetServer>,
+    assets: &Res<GameAssets>,
     position: Vec3,
     rotation: f32,
     color: Color,
@@ -26,14 +26,14 @@ pub fn sprite(
             scale: (style::LASER_SCALE * scale).extend(1.0),
             ..default()
         },
-        texture: asset_server.load(style::LASER_TEXTURE),
+        texture: assets.laser_texture.clone(),
         sprite: Sprite { color, ..default() },
         ..default()
     }
 }
 
 pub fn orb_sprite(
-    asset_server: &Res<AssetServer>,
+    assets: &Res<GameAssets>,
     position: Vec3,
     rotation: f32,
     color: Color,
@@ -46,7 +46,7 @@ pub fn orb_sprite(
             scale: (style::ORB_SCALE * scale).extend(1.0),
             ..default()
         },
-        texture: asset_server.load(style::ORB_TEXTURE),
+        texture: assets.orb_texture.clone(),
         sprite: Sprite { color, ..default() },
         ..default()
     }
@@ -54,7 +54,7 @@ pub fn orb_sprite(
 
 impl Bundle {
     pub fn new(
-        asset_server: &Res<AssetServer>,
+        assets: &Res<GameAssets>,
         position: Vec3,
         angle: f32,
         speed: f32,
@@ -74,11 +74,7 @@ impl Bundle {
                 is_damaging,
             },
             sprite_bundle: if is_laser { sprite } else { orb_sprite }(
-                &asset_server,
-                position,
-                angle,
-                color,
-                scale,
+                &assets, position, angle, color, scale,
             ),
             scroll: map::Scroll,
         }

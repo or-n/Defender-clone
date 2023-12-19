@@ -1,4 +1,4 @@
-use bevy::{app::AppExit, audio::AudioSource, prelude::*};
+use bevy::{app::AppExit, prelude::*};
 
 mod assets;
 mod camera;
