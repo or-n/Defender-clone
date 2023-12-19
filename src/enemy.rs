@@ -1,7 +1,7 @@
 use bevy::{prelude::*, sprite::collide_aabb::collide, window::PrimaryWindow};
 
 use crate::{
-    assets::{self, GameAssets},
+    assets::{audio, GameAssets},
     explosion, game_over, laser, map, minimap, player, score, style, utils,
 };
 use game_over::GameOver;
@@ -90,7 +90,7 @@ fn shoot_player(
                     false,
                     true,
                 ));
-                commands.spawn(assets::audio(assets.laser_audio.clone()));
+                commands.spawn(audio(assets.laser_audio.clone(), style::VOLUME));
                 enemy.next_shot = elapsed + 4.0;
             }
         }

@@ -1,7 +1,7 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 
 use crate::{
-    assets::{self, GameAssets},
+    assets::{audio, GameAssets},
     camera, explosion, game_over, laser, map, minimap, style, utils,
 };
 use game_over::GameOver;
@@ -122,7 +122,7 @@ fn try_shooting(
     let elapsed = time.elapsed_seconds();
     if let Ok((transform, mut player)) = player_query.get_single_mut() {
         if controls.shoot && player.next_shot_time <= elapsed {
-            commands.spawn(assets::audio(assets.laser_audio.clone()));
+            commands.spawn(audio(assets.laser_audio.clone(), style::VOLUME));
             let angle = match player.facing {
                 Side::Left => 0.5,
                 Side::Right => 0.0,

@@ -22,10 +22,9 @@ pub fn load(asset_server: Res<AssetServer>, mut commands: Commands) {
     })
 }
 
-pub fn audio(source: Handle<AudioSource>) -> AudioBundle {
-    let volume = utils::bevy::volume(style::VOLUME);
+pub fn audio(source: Handle<AudioSource>, volume: f32) -> AudioBundle {
     AudioBundle {
         source,
-        settings: PlaybackSettings::DESPAWN.with_volume(volume),
+        settings: PlaybackSettings::DESPAWN.with_volume(utils::bevy::volume(volume)),
     }
 }

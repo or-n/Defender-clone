@@ -1,4 +1,7 @@
-use crate::{assets::GameAssets, laser, style, utils};
+use crate::{
+    assets::{audio, GameAssets},
+    laser, style, utils,
+};
 use bevy::prelude::*;
 
 #[derive(Event)]
@@ -21,11 +24,10 @@ fn try_spawning(
     mut event: EventReader<At>,
 ) {
     for explosion in event.read() {
-        commands.spawn(AudioBundle {
-            source: assets.collision_audio.clone(),
-            settings: PlaybackSettings::DESPAWN
-                .with_volume(utils::bevy::volume(style::EXPLOSION_VOLUME)),
-        });
+        commands.spawn(audio(
+            assets.collision_audio.clone(),
+            style::EXPLOSION_VOLUME,
+        ));
         let n = 16;
         let speed = 400.0;
         for i in 0..n {
