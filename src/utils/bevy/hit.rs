@@ -1,4 +1,22 @@
 use bevy::prelude::*;
+use std::marker::PhantomData;
+
+#[derive(Component)]
+pub struct Hittable<T> {
+    pub hitbox: Vec2,
+    pub hit_entity: Option<Entity>,
+    phantom: PhantomData<T>,
+}
+
+impl<T> Hittable<T> {
+    pub fn new(hitbox: Vec2) -> Hittable<T> {
+        Hittable {
+            hitbox,
+            hit_entity: None,
+            phantom: PhantomData,
+        }
+    }
+}
 
 pub fn hit(
     a: Vec3,

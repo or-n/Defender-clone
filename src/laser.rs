@@ -1,7 +1,7 @@
 use bevy::{prelude::*, sprite::collide_aabb::collide, window::PrimaryWindow};
 
 use crate::{assets::GameAssets, map, style, utils};
-use utils::bevy::{projectile::Projectile, state::Simulation};
+use utils::bevy::{hit::*, projectile::Projectile, state::Simulation};
 
 pub const SPEED: f32 = 2400.0 * 2.0;
 
@@ -66,7 +66,7 @@ impl Plugin for Plug {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            despawn_outside_window.run_if(in_state(Simulation::Running)),
+            (despawn_outside_window, detect_hits).run_if(in_state(Simulation::Running)),
         );
     }
 }
@@ -86,6 +86,34 @@ fn despawn_outside_window(
             style::LASER_BOUND,
         ) {
             commands.entity(entity).despawn();
+        }
+    }
+}
+
+fn detect_hits(
+    query: Query<(Entity, &Transform, &Projectile)>,
+    mut hittable_query: Query<(&Transform, &mut Hittable<Projectile>)>,
+    camera_query: Query<&Transform, With<Camera>>,
+    window_query: Query<&Window, With<PrimaryWindow>>,
+) {
+    for (transform, mut hittable) in hittable_query.iter_mut() {
+        for (entity, projectile_transform, projectile) in query.iter() {
+            if !projectile.is_damaging {
+                continue;
+            }
+            if hit(
+                projectile_transform.translation,
+                projectile.bound,
+                transform.translation,
+                hittable.hitbox,
+                camera_query.single().translation,
+                utils::bevy::size(window_query.single()),
+            )
+            .is_some()
+            {
+                hittable.hit_entity = Some(entity);
+                break;
+            }
         }
     }
 }

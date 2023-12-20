@@ -1,4 +1,4 @@
-use bevy::{prelude::*, sprite::collide_aabb::collide, window::PrimaryWindow};
+use bevy::{prelude::*, window::PrimaryWindow};
 
 use crate::{
     assets::{audio, GameAssets},
@@ -11,7 +11,7 @@ use game_over::GameOver;
 use player::Player;
 use projectile::Projectile;
 use score::Score;
-use utils::bevy::{hit::hit, projectile, state::Simulation};
+use utils::bevy::{hit::*, projectile, state::Simulation};
 
 #[derive(Component)]
 pub struct Enemy {
@@ -218,6 +218,7 @@ fn spawn_enemies(
                 },
                 map::Scroll,
                 map::Confine,
+                Hittable::<Projectile>::new(style::ENEMY_BOUND),
             ))
             .id();
         commands.spawn(person::bundle(
@@ -229,38 +230,20 @@ fn spawn_enemies(
 }
 
 fn laser_hit(
-    query: Query<(Entity, &Transform), (With<Enemy>, Without<Person>)>,
-    laser_query: Query<(Entity, &Transform, &Projectile), (Without<Enemy>, Without<Person>)>,
+    query: Query<(Entity, &Transform, &Hittable<Projectile>), With<Enemy>>,
     mut commands: Commands,
     mut score: ResMut<Score>,
-    camera_query: Query<&Transform, With<Camera>>,
-    window_query: Query<&Window, With<PrimaryWindow>>,
     mut explosion_event: EventWriter<explosion::At>,
     mut enemies: ResMut<EnemiesCount>,
 ) {
-    for (enemy_entity, enemy) in query.iter() {
-        for (_, laser, projectile) in laser_query.iter() {
-            if !projectile.is_damaging {
-                continue;
-            }
-            if hit(
-                enemy.translation,
-                style::ENEMY_BOUND,
-                laser.translation,
-                projectile.bound,
-                camera_query.single().translation,
-                utils::bevy::size(window_query.single()),
-            )
-            .is_some()
-            {
-                score.value += 1;
-                commands.entity(enemy_entity).despawn();
-                enemies.count -= 1;
-                explosion_event.send(explosion::At {
-                    position: enemy.translation,
-                });
-                break;
-            }
+    for (enemy_entity, enemy, hittable) in query.iter() {
+        if let Some(_) = hittable.hit_entity {
+            score.value += 1;
+            commands.entity(enemy_entity).despawn();
+            enemies.count -= 1;
+            explosion_event.send(explosion::At {
+                position: enemy.translation,
+            });
         }
     }
 }
@@ -277,12 +260,14 @@ fn player_hit(
         let player_position = player_transform.translation;
         for (enemy_entity, enemy_transform) in query.iter() {
             let enemy_position = enemy_transform.translation;
-            if let Some(_) = collide(
-                player_position,
+            if box_intersection(
+                player_position.xy(),
                 style::PLAYER_BOUND,
-                enemy_position,
+                enemy_position.xy(),
                 style::ENEMY_BOUND,
-            ) {
+            )
+            .is_some()
+            {
                 commands.entity(player_entity).despawn();
                 commands.entity(enemy_entity).despawn();
                 enemies.count -= 1;

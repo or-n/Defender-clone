@@ -1,4 +1,4 @@
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::prelude::*;
 
 use crate::{
     assets::{audio, GameAssets},
@@ -6,7 +6,7 @@ use crate::{
 };
 use game_over::GameOver;
 use projectile::Projectile;
-use utils::bevy::{hit::hit, projectile, state::Simulation};
+use utils::bevy::{hit::*, projectile, state::Simulation};
 use utils::{range::Range, Side};
 
 mod input;
@@ -75,6 +75,7 @@ pub fn spawn(
         },
         thrust::ThrustBundle::new(assets),
         map::Confine,
+        Hittable::<Projectile>::new(style::PLAYER_BOUND),
     ));
 }
 
@@ -111,7 +112,7 @@ fn movement(
     }
 }
 
-const SHOOT_DELAY: f32 = 0.4; //0.04;//0.1;
+const SHOOT_DELAY: f32 = 0.4;
 
 fn try_shooting(
     mut player_query: Query<(&Transform, &mut Player)>,
@@ -142,36 +143,18 @@ fn try_shooting(
 }
 
 fn laser_hit(
-    query: Query<(Entity, &Transform), With<Player>>,
-    laser_query: Query<(Entity, &Transform, &Projectile), Without<Player>>,
+    query: Query<(Entity, &Transform, &Hittable<Projectile>), With<Player>>,
     mut commands: Commands,
-    camera_query: Query<&Transform, With<Camera>>,
-    window_query: Query<&Window, With<PrimaryWindow>>,
     mut explosion_event: EventWriter<explosion::At>,
     mut game_over_event: EventWriter<GameOver>,
 ) {
-    for (player_entity, player) in query.iter() {
-        for (_, laser, projectile) in laser_query.iter() {
-            if !projectile.is_damaging {
-                continue;
-            }
-            if hit(
-                player.translation,
-                style::PLAYER_BOUND,
-                laser.translation,
-                projectile.bound,
-                camera_query.single().translation,
-                utils::bevy::size(window_query.single()),
-            )
-            .is_some()
-            {
-                commands.entity(player_entity).despawn();
-                explosion_event.send(explosion::At {
-                    position: player.translation,
-                });
-                game_over_event.send(GameOver);
-                break;
-            }
+    for (player_entity, player, hittable) in query.iter() {
+        if let Some(_) = hittable.hit_entity {
+            commands.entity(player_entity).despawn();
+            explosion_event.send(explosion::At {
+                position: player.translation,
+            });
+            game_over_event.send(GameOver);
         }
     }
 }
