@@ -58,7 +58,7 @@ fn gen_terrain() -> Terrain {
             + perlin.get([x / 4.0, y / 4.0]) * 4.0
             + perlin.get([x / 8.0, y / 8.0]) * 8.0;
         let t = value as f32 / 16.0 * 0.5 + 0.5;
-        heights.push(t * t * t * SEGMENT_HEIGHT);
+        heights.push((t * t * t + 0.2) * SEGMENT_HEIGHT);
     }
     heights.push(heights[0]);
     Terrain { heights }

@@ -49,4 +49,7 @@ pub const ENEMY_BOUND: Vec2 = Vec2::new(124.0 * ENEMY_SCALE.x, 123.0 * ENEMY_SCA
 pub const COLLISION_SOUND: &str = "audio/space-explosion.ogg";
 
 pub const PERSON_TEXTURE: &str = "sprites/character_zombie_sheet.png";
-pub const PERSON_BOUND: Vec2 = Vec2::new(96.0, 128.0);
+pub const PERSON_SCALE: Vec2 = Vec2::new(0.5, 0.5);
+pub const PERSON_GRID_SIZE: Vec2 = Vec2::new(96.0, 128.0);
+pub const PERSON_CENTER: Vec2 = Vec2::new(0.0, -20.0);
+pub const PERSON_BOUND: Vec2 = Vec2::new(PERSON_GRID_SIZE.x * 0.8, PERSON_GRID_SIZE.y * 0.8);

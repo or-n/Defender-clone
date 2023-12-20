@@ -2,7 +2,8 @@ use bevy::{prelude::*, sprite::collide_aabb::collide, window::PrimaryWindow};
 
 use crate::{
     assets::{audio, GameAssets},
-    explosion, game_over, laser, map, minimap, person,
+    explosion, game_over, laser, map, minimap,
+    person::{self, Person},
     player::{self, HORIZONTAL_SPEED},
     score, style, utils,
 };
@@ -168,6 +169,7 @@ fn spawn_enemies(
     mut score: ResMut<Score>,
     map_scroll: Res<map::MapScroll>,
     player_query: Query<With<Player>>,
+    person_query: Query<Entity, With<Person>>,
 ) {
     if enemies.count > 0 || player_query.get_single().is_err() {
         return;
@@ -184,6 +186,9 @@ fn spawn_enemies(
         source: assets.begin_wave_audio.clone(),
         settings: PlaybackSettings::DESPAWN.with_volume(utils::bevy::volume(style::VOICE_VOLUME)),
     });
+    for person in person_query.iter() {
+        commands.entity(person).despawn();
+    }
     for _ in 0..enemies.wave.min(style::MAX_ENEMY_COUNT) {
         let mut x = rand::random::<f32>() * map::SIZE;
         x = map_scroll.update(x);
@@ -193,7 +198,7 @@ fn spawn_enemies(
         }
         let y = 100.0 + rand::random::<f32>() * 400.0;
         let desired_position = Vec3::new(x, y, 0.0);
-        commands
+        let enemy_entity = commands
             .spawn((
                 SpriteBundle {
                     transform: Transform {
@@ -214,20 +219,18 @@ fn spawn_enemies(
                 map::Scroll,
                 map::Confine,
             ))
-            .with_children(|parent| {
-                parent.spawn(person::bundle(
-                    Transform::from_translation(Vec3::Y * -100.0).with_scale(Vec3::splat(1.0)),
-                    &assets,
-                ));
-            });
+            .id();
+        commands.spawn(person::bundle(
+            person::CharacterState::CapturedBy(enemy_entity),
+            &assets,
+        ));
         enemies.count += 1;
     }
 }
 
 fn laser_hit(
-    query: Query<(Entity, &Transform, &Children), With<Enemy>>,
-    laser_query: Query<(Entity, &Transform, &Projectile), Without<Enemy>>,
-    mut person_query: Query<&mut person::CharacterState>,
+    query: Query<(Entity, &Transform), (With<Enemy>, Without<Person>)>,
+    laser_query: Query<(Entity, &Transform, &Projectile), (Without<Enemy>, Without<Person>)>,
     mut commands: Commands,
     mut score: ResMut<Score>,
     camera_query: Query<&Transform, With<Camera>>,
@@ -235,7 +238,7 @@ fn laser_hit(
     mut explosion_event: EventWriter<explosion::At>,
     mut enemies: ResMut<EnemiesCount>,
 ) {
-    for (enemy_entity, enemy, children) in query.iter() {
+    for (enemy_entity, enemy) in query.iter() {
         for (_, laser, projectile) in laser_query.iter() {
             if !projectile.is_damaging {
                 continue;
@@ -250,11 +253,6 @@ fn laser_hit(
             )
             .is_some()
             {
-                for &child in children.iter() {
-                    if let Ok(mut state) = person_query.get_mut(child) {
-                        *state = person::CharacterState::Falling;
-                    }
-                }
                 score.value += 1;
                 commands.entity(enemy_entity).despawn();
                 enemies.count -= 1;

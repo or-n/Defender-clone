@@ -36,7 +36,7 @@ pub fn load(
         laser_texture: asset_server.load(style::LASER_TEXTURE),
         person_texture_atlas: texture_atlases.add(texture_atlas(
             asset_server.load(style::PERSON_TEXTURE),
-            style::PERSON_BOUND,
+            style::PERSON_GRID_SIZE,
             (9, 5),
         )),
     })
