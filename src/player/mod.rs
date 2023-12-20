@@ -54,7 +54,7 @@ fn try_drawing_on_minimap(
 
 pub fn spawn(
     commands: &mut Commands,
-    asset_server: &Res<AssetServer>,
+    assets: &Res<GameAssets>,
     camera_query: &Query<&Transform, With<Camera>>,
 ) {
     if let Ok(camera_transform) = camera_query.get_single() {
@@ -65,7 +65,7 @@ pub fn spawn(
                     rotation: utils::bevy::angle(-0.25),
                     ..default()
                 },
-                texture: asset_server.load(style::PLAYER_TEXTURE),
+                texture: assets.player_texture.clone(),
                 ..default()
             },
             Player {
@@ -73,7 +73,7 @@ pub fn spawn(
                 horizontal_speed: 0.0,
                 next_shot_time: 0.0,
             },
-            thrust::ThrustBundle::new(&asset_server),
+            thrust::ThrustBundle::new(assets),
             map::Confine,
         ));
     }
@@ -82,7 +82,7 @@ pub fn spawn(
 const HORIZONTAL_SPEED: f32 = 400.0;
 const VERTICAL_SPEED: f32 = 200.0;
 
-const ACCELERATION: f32 = 1600.0;
+const ACCELERATION: f32 = 1200.0;
 const DECELERATION: f32 = 100.0;
 
 fn movement(

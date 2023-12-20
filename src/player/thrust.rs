@@ -1,11 +1,11 @@
 use bevy::prelude::*;
 
-use crate::{style, utils};
-use super::{Player, input};
+use super::{input, Player};
+use crate::{assets::GameAssets, style, utils};
 
 #[derive(Component)]
 pub struct Thrust {
-    volume: f32
+    volume: f32,
 }
 
 #[derive(Bundle)]
@@ -15,12 +15,13 @@ pub struct ThrustBundle {
 }
 
 impl ThrustBundle {
-    pub fn new(
-        asset_server: &Res<AssetServer>
-    ) -> ThrustBundle {
+    pub fn new(assets: &GameAssets) -> ThrustBundle {
         ThrustBundle {
-            audio: init_audio(&asset_server),
-            thrust: Thrust { volume: 0.0 }
+            audio: AudioBundle {
+                source: assets.thrust_audio.clone(),
+                settings: PlaybackSettings::LOOP.with_volume(utils::bevy::volume(0.0)),
+            },
+            thrust: Thrust { volume: 0.0 },
         }
     }
 }
@@ -29,21 +30,7 @@ pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(Update, (
-                spawn_particle,
-                set_volume
-            ));
-    }
-}
-
-fn init_audio(
-    asset_server: &Res<AssetServer>
-) -> AudioBundle {
-    AudioBundle {
-        source: asset_server.load(style::THRUST_SOUND),
-        settings: PlaybackSettings::LOOP
-            .with_volume(utils::bevy::volume(0.0)),
+        app.add_systems(Update, (spawn_particle, set_volume));
     }
 }
 
@@ -68,7 +55,11 @@ fn spawn_particle(
                 SpriteBundle {
                     transform: Transform {
                         translation,
-                        scale: Vec3 { x: 0.1, y: 0.05, z: 1.0 },
+                        scale: Vec3 {
+                            x: 0.1,
+                            y: 0.05,
+                            z: 1.0,
+                        },
                         ..default()
                     },
                     texture: asset_server.load(utils::variant(
@@ -86,7 +77,7 @@ fn spawn_particle(
                     offset,
                 },
                 utils::bevy::DespawnTime {
-                    elapsed_seconds: time.elapsed_seconds() + 0.05
+                    elapsed_seconds: time.elapsed_seconds() + 0.05,
                 },
             ));
         }
@@ -102,8 +93,9 @@ fn set_volume(
         const ADJUST_SPEED: f32 = 4.0;
         thrust.volume = utils::range::Range {
             start: thrust.volume,
-            end: if controls.thrust() { 1.0 } else { 0.0 }
-        }.mix(ADJUST_SPEED * time.delta_seconds());
+            end: if controls.thrust() { 1.0 } else { 0.0 },
+        }
+        .mix(ADJUST_SPEED * time.delta_seconds());
         audio.set_volume(thrust.volume * style::VOLUME);
     }
 }
