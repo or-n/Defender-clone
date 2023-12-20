@@ -78,11 +78,11 @@ pub fn spawn(
     ));
 }
 
-pub const HORIZONTAL_SPEED: f32 = 400.0;
+pub const HORIZONTAL_SPEED: f32 = 600.0;
 const VERTICAL_SPEED: f32 = 400.0;
 
-const ACCELERATION: f32 = 1600.0 * 1.0;
-const DECELERATION: f32 = 100.0;
+const ACCELERATION: f32 = 12000.0;
+const DECELERATION: f32 = 400.0;
 
 fn movement(
     mut player_query: Query<(&mut Transform, &mut Player)>,
@@ -102,14 +102,16 @@ fn movement(
             Range { start, end }.step(ACCELERATION * time.delta_seconds())
         } else {
             let end = 0.0;
-            Range { start, end }.step(DECELERATION * time.delta_seconds())
+            let speed_ratio = player.horizontal_speed.abs() / HORIZONTAL_SPEED;
+            let t = speed_ratio * speed_ratio;
+            Range { start, end }.step(DECELERATION * t * time.delta_seconds())
         };
         let dy = controls.vertical() * VERTICAL_SPEED;
         transform.translation += time.delta_seconds() * Vec3::new(player.horizontal_speed, dy, 0.0);
     }
 }
 
-const SHOOT_DELAY: f32 = 0.2; //0.04;//0.1;
+const SHOOT_DELAY: f32 = 0.4; //0.04;//0.1;
 
 fn try_shooting(
     mut player_query: Query<(&Transform, &mut Player)>,

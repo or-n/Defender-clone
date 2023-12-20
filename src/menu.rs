@@ -1,4 +1,4 @@
-use crate::{assets::GameAssets, enemy, player, score, style, utils};
+use crate::{assets::GameAssets, enemy, person, player, score, style, utils};
 use bevy::{app::AppExit, prelude::*};
 use utils::bevy::{projectile::Projectile, state::Simulation};
 
@@ -47,6 +47,7 @@ fn button_change(
     mut exit: EventWriter<AppExit>,
     player_query: Query<With<player::Player>>,
     enemy_query: Query<Entity, With<enemy::Enemy>>,
+    person_query: Query<Entity, With<person::CharacterState>>,
     projectile_query: Query<Entity, With<Projectile>>,
     mut enemies_count: ResMut<enemy::EnemiesCount>,
     assets: Res<GameAssets>,
@@ -62,6 +63,9 @@ fn button_change(
                 commands.entity(entity).despawn();
             }
             for entity in projectile_query.iter() {
+                commands.entity(entity).despawn();
+            }
+            for entity in person_query.iter() {
                 commands.entity(entity).despawn();
             }
             enemies_count.count = 0;

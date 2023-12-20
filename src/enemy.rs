@@ -2,7 +2,9 @@ use bevy::{prelude::*, sprite::collide_aabb::collide, window::PrimaryWindow};
 
 use crate::{
     assets::{audio, GameAssets},
-    explosion, game_over, laser, map, minimap, player, score, style, utils,
+    explosion, game_over, laser, map, minimap, person,
+    player::{self, HORIZONTAL_SPEED},
+    score, style, utils,
 };
 use game_over::GameOver;
 use player::Player;
@@ -57,9 +59,11 @@ pub fn visible(x: f32, camera_x: f32, window_width: f32) -> bool {
     x >= -half_screen_x && x <= half_screen_x
 }
 
+const ORB_SPEED: f32 = 450.0;
+
 fn shoot_player(
     mut query: Query<(&Transform, &mut Enemy)>,
-    player_query: Query<&Transform, With<Player>>,
+    player_query: Query<(&Transform, &Player)>,
     window_query: Query<&Window, With<PrimaryWindow>>,
     camera_query: Query<&Transform, With<Camera>>,
     assets: Res<GameAssets>,
@@ -69,13 +73,18 @@ fn shoot_player(
     let elapsed = time.elapsed_seconds();
     let window = window_query.single();
     let camera_position = camera_query.single().translation;
-    if let Ok(player_transform) = player_query.get_single() {
+    if let Ok((player_transform, player)) = player_query.get_single() {
         let player_position = player_transform.translation;
         for (transform, mut enemy) in query.iter_mut() {
             let position = transform.translation;
-            let d = player_position - position;
-            let d = Vec2::new(d.x, d.y).normalize();
-            let angle = Vec2::X.angle_between(d) / 3.14 * 0.5;
+            let delta = player_position - position;
+            let d = delta.length() / (2.5 * HORIZONTAL_SPEED);
+            let dir = delta.normalize();
+            let d = player_position + Vec3::X * player.horizontal_speed * d
+                - position
+                - dir * d * ORB_SPEED;
+            let dir = Vec2::new(d.x, d.y).normalize();
+            let angle = Vec2::X.angle_between(dir) / 3.14 * 0.5;
             let visible = visible(position.x, camera_position.x, window.width());
             if !visible {
                 enemy.last_outside = elapsed;
@@ -83,15 +92,15 @@ fn shoot_player(
             if enemy.next_shot < elapsed && enemy.last_outside + 0.5 < elapsed {
                 commands.spawn(laser::Bundle::new(
                     &assets,
-                    position + d.extend(0.0) * 50.0,
+                    position + dir.extend(0.0) * 50.0,
                     angle,
-                    600.0,
+                    ORB_SPEED,
                     utils::bevy::bloom_hue(360.0),
                     false,
                     true,
                 ));
                 commands.spawn(audio(assets.laser_audio.clone(), style::VOLUME));
-                enemy.next_shot = elapsed + 4.0;
+                enemy.next_shot = elapsed + 2.0;
             }
         }
     }
@@ -107,12 +116,15 @@ fn movement(
     let window = window_query.single();
     for (mut transform, mut enemy) in query.iter_mut() {
         if enemy.next_desired_position < elapsed {
-            let dx = (rand::random::<f32>() * 2.0 - 1.0) * 800.0;
-            let dy = (rand::random::<f32>() * 2.0 - 1.0) * 200.0;
+            let dx = rand::random::<f32>() * 2.0 - 1.0;
+            let mut dy = rand::random::<f32>() * 2.0 - 1.0;
             let offset = style::BORDER_CONFINEMENT_OFFSET;
             let h = window.height() * (1.0 - style::MINIMAP_HEIGHT);
-            let mut p = enemy.position + Vec3::new(dx, dy, 0.0);
-            p.y = p.y.clamp(offset, h - offset);
+            let mut p = enemy.position + Vec3::new(dx, dy, 0.0) * 800.0;
+            while p.y < offset || p.y > h - offset {
+                dy = rand::random::<f32>() * 2.0 - 1.0;
+                p = enemy.position + Vec3::new(dx, dy, 0.0) * 800.0;
+            }
             enemy.desired_position = p;
             enemy.next_desired_position = elapsed + 1.0;
         }
@@ -127,8 +139,7 @@ fn movement(
         let d = Vec2::new(dx, dy).normalize().extend(0.0);
         let step = 200.0 * time.delta_seconds();
         enemy.position += d * step;
-        let clock = utils::bevy::clock(time.elapsed_seconds()).extend(0.0);
-        let mut p = enemy.position + clock * 20.0;
+        let mut p = enemy.position;
         p.x = map_scroll.update(p.x);
         transform.translation = p;
     }
@@ -182,33 +193,41 @@ fn spawn_enemies(
         }
         let y = 100.0 + rand::random::<f32>() * 400.0;
         let desired_position = Vec3::new(x, y, 0.0);
-        commands.spawn((
-            SpriteBundle {
-                transform: Transform {
-                    translation: desired_position,
-                    scale: style::ENEMY_SCALE.extend(1.0),
+        commands
+            .spawn((
+                SpriteBundle {
+                    transform: Transform {
+                        translation: desired_position,
+                        scale: style::ENEMY_SCALE.extend(1.0),
+                        ..default()
+                    },
+                    texture: assets.enemy_texture.clone(),
                     ..default()
                 },
-                texture: assets.enemy_texture.clone(),
-                ..default()
-            },
-            Enemy {
-                position: desired_position,
-                desired_position,
-                next_shot: 0.0,
-                next_desired_position: 0.0,
-                last_outside: 0.0,
-            },
-            map::Scroll,
-            map::Confine,
-        ));
+                Enemy {
+                    position: desired_position,
+                    desired_position,
+                    next_shot: 0.0,
+                    next_desired_position: 0.0,
+                    last_outside: 0.0,
+                },
+                map::Scroll,
+                map::Confine,
+            ))
+            .with_children(|parent| {
+                parent.spawn(person::bundle(
+                    Transform::from_translation(Vec3::Y * -100.0).with_scale(Vec3::splat(1.0)),
+                    &assets,
+                ));
+            });
         enemies.count += 1;
     }
 }
 
 fn laser_hit(
-    query: Query<(Entity, &Transform), With<Enemy>>,
+    query: Query<(Entity, &Transform, &Children), With<Enemy>>,
     laser_query: Query<(Entity, &Transform, &Projectile), Without<Enemy>>,
+    mut person_query: Query<&mut person::CharacterState>,
     mut commands: Commands,
     mut score: ResMut<Score>,
     camera_query: Query<&Transform, With<Camera>>,
@@ -216,7 +235,7 @@ fn laser_hit(
     mut explosion_event: EventWriter<explosion::At>,
     mut enemies: ResMut<EnemiesCount>,
 ) {
-    for (enemy_entity, enemy) in query.iter() {
+    for (enemy_entity, enemy, children) in query.iter() {
         for (_, laser, projectile) in laser_query.iter() {
             if !projectile.is_damaging {
                 continue;
@@ -231,6 +250,11 @@ fn laser_hit(
             )
             .is_some()
             {
+                for &child in children.iter() {
+                    if let Ok(mut state) = person_query.get_mut(child) {
+                        *state = person::CharacterState::Falling;
+                    }
+                }
                 score.value += 1;
                 commands.entity(enemy_entity).despawn();
                 enemies.count -= 1;

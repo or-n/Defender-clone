@@ -9,6 +9,7 @@ mod laser;
 mod map;
 mod menu;
 mod minimap;
+mod person;
 mod player;
 mod score;
 mod style;
@@ -25,6 +26,7 @@ fn main() {
             map::Plug,
             player::Plug,
             enemy::Plug,
+            person::Plug,
             laser::Plug,
             explosion::Plug,
             game_over::Plug,

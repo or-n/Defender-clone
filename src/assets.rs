@@ -12,9 +12,18 @@ pub struct GameAssets {
     pub enemy_texture: Handle<Image>,
     pub orb_texture: Handle<Image>,
     pub laser_texture: Handle<Image>,
+    pub person_texture_atlas: Handle<TextureAtlas>,
 }
 
-pub fn load(asset_server: Res<AssetServer>, mut commands: Commands) {
+pub fn texture_atlas(handle: Handle<Image>, tile_size: Vec2, size: (usize, usize)) -> TextureAtlas {
+    TextureAtlas::from_grid(handle, tile_size, size.0, size.1, None, None)
+}
+
+pub fn load(
+    asset_server: Res<AssetServer>,
+    mut commands: Commands,
+    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+) {
     commands.insert_resource(GameAssets {
         begin_wave_audio: asset_server.load(style::BEGIN_SOUND),
         game_over_audio: asset_server.load(style::GAME_OVER_SOUND),
@@ -25,6 +34,11 @@ pub fn load(asset_server: Res<AssetServer>, mut commands: Commands) {
         enemy_texture: asset_server.load(style::ENEMY_TEXTURE),
         orb_texture: asset_server.load(style::ORB_TEXTURE),
         laser_texture: asset_server.load(style::LASER_TEXTURE),
+        person_texture_atlas: texture_atlases.add(texture_atlas(
+            asset_server.load(style::PERSON_TEXTURE),
+            style::PERSON_BOUND,
+            (9, 5),
+        )),
     })
 }
 

@@ -34,12 +34,12 @@ pub const THRUST_SOUND: &str = "audio/boost-engine-loop.ogg";
 pub const THRUST_OFFSET: f32 = -20.0;
 
 pub const LASER_TEXTURE: &str = "sprites/laserGreen1.png";
-pub const LASER_SCALE: Vec2 = Vec2::new(1.0 / 32.0, 2.0);
+pub const LASER_SCALE: Vec2 = Vec2::new(1.0 / 16.0, 4.0);
 pub const LASER_BOUND: Vec2 = Vec2::new(100.0 * LASER_SCALE.y, 38.0 * LASER_SCALE.x);
 pub const LASER_SOUND: &str = "audio/laserLarge_003.ogg";
 
 pub const ORB_TEXTURE: &str = "sprites/star_tiny.png";
-pub const ORB_SCALE: Vec2 = Vec2::new(1.0, 1.0);
+pub const ORB_SCALE: Vec2 = Vec2::new(2.0, 2.0);
 pub const ORB_BOUND: Vec2 = Vec2::new(64.0 * 0.25 * ORB_SCALE.x, 64.0 * 0.25 * ORB_SCALE.y);
 
 pub const ENEMY_TEXTURE: &str = "sprites/shipGreen_manned.png";
@@ -47,3 +47,6 @@ pub const ENEMY_SCALE: Vec2 = Vec2::new(0.375, 0.375);
 pub const ENEMY_BOUND: Vec2 = Vec2::new(124.0 * ENEMY_SCALE.x, 123.0 * ENEMY_SCALE.y);
 
 pub const COLLISION_SOUND: &str = "audio/space-explosion.ogg";
+
+pub const PERSON_TEXTURE: &str = "sprites/character_zombie_sheet.png";
+pub const PERSON_BOUND: Vec2 = Vec2::new(96.0, 128.0);

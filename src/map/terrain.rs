@@ -1,15 +1,12 @@
-use bevy::{
-    prelude::*,
-    window::PrimaryWindow,
-};
+use bevy::{prelude::*, window::PrimaryWindow};
 
 use noise::{NoiseFn, Perlin};
 use std::f64::consts::TAU;
 
-use crate::{style, minimap, utils};
 use super::MapScroll;
+use crate::{minimap, style, utils};
 
-pub const POINTS: usize = 500;
+pub const POINTS: usize = 1000;
 pub const SEGMENTS: usize = POINTS - 1;
 pub const SEGMENT_LENGTH: f32 = 10.0;
 pub const SEGMENT_HEIGHT: f32 = 400.0;
@@ -18,8 +15,7 @@ pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
-        app
-            .insert_resource(gen_terrain())
+        app.insert_resource(gen_terrain())
             .add_systems(Update, draw)
             .add_systems(PostUpdate, try_drawing_on_minimap);
     }
