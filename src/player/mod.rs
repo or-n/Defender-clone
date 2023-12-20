@@ -15,7 +15,7 @@ mod thrust;
 #[derive(Component)]
 pub struct Player {
     pub facing: Side,
-    horizontal_speed: f32,
+    pub horizontal_speed: f32,
     next_shot_time: f32,
 }
 
@@ -57,32 +57,31 @@ pub fn spawn(
     assets: &Res<GameAssets>,
     camera_query: &Query<&Transform, With<Camera>>,
 ) {
-    if let Ok(camera_transform) = camera_query.get_single() {
-        commands.spawn((
-            SpriteBundle {
-                transform: Transform {
-                    translation: camera_transform.translation,
-                    rotation: utils::bevy::angle(-0.25),
-                    ..default()
-                },
-                texture: assets.player_texture.clone(),
+    let camera = camera_query.single();
+    commands.spawn((
+        SpriteBundle {
+            transform: Transform {
+                translation: camera.translation,
+                rotation: utils::bevy::angle(-0.25),
                 ..default()
             },
-            Player {
-                facing: Side::Right,
-                horizontal_speed: 0.0,
-                next_shot_time: 0.0,
-            },
-            thrust::ThrustBundle::new(assets),
-            map::Confine,
-        ));
-    }
+            texture: assets.player_texture.clone(),
+            ..default()
+        },
+        Player {
+            facing: Side::Right,
+            horizontal_speed: 0.0,
+            next_shot_time: 0.0,
+        },
+        thrust::ThrustBundle::new(assets),
+        map::Confine,
+    ));
 }
 
-const HORIZONTAL_SPEED: f32 = 400.0;
-const VERTICAL_SPEED: f32 = 200.0;
+pub const HORIZONTAL_SPEED: f32 = 400.0;
+const VERTICAL_SPEED: f32 = 400.0;
 
-const ACCELERATION: f32 = 1200.0;
+const ACCELERATION: f32 = 1600.0 * 1.0;
 const DECELERATION: f32 = 100.0;
 
 fn movement(

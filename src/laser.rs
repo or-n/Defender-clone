@@ -3,7 +3,7 @@ use bevy::{prelude::*, sprite::collide_aabb::collide, window::PrimaryWindow};
 use crate::{assets::GameAssets, map, style, utils};
 use utils::bevy::{projectile::Projectile, state::Simulation};
 
-pub const SPEED: f32 = 2400.0;
+pub const SPEED: f32 = 2400.0 * 1.5;
 
 #[derive(Bundle)]
 pub struct Bundle {

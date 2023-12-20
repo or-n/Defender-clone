@@ -85,7 +85,7 @@ fn shoot_player(
                     &assets,
                     position + d.extend(0.0) * 50.0,
                     angle,
-                    300.0,
+                    600.0,
                     utils::bevy::bloom_hue(360.0),
                     false,
                     true,
