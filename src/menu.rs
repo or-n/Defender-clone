@@ -96,7 +96,7 @@ fn button_change(
 fn spawn(mut commands: Commands, asset_server: Res<AssetServer>) {
     let minimap_width = style::MINIMAP_WIDTH * 100.0;
     let minimap_height = style::MINIMAP_HEIGHT * 100.0;
-    let pad = 0.125 * 600.0 * 0.25;
+    let pad = 0.125 * 600.0 * 0.125;
     commands
         .spawn((
             NodeBundle {
@@ -183,12 +183,14 @@ fn spawn(mut commands: Commands, asset_server: Res<AssetServer>) {
             let s = vec![121];
             let d = vec![122];
             let space = vec![235, 236, 237];
+            let control = vec![221, 222];
             show_binding(esc, "pause");
             show_binding(a, "move left");
             show_binding(d, "move right");
             show_binding(w, "move up");
             show_binding(s, "move down");
             show_binding(space, "shoot laser");
+            show_binding(control, "rescue");
             let mut button = |msg, button: Button| {
                 parent
                     .spawn((

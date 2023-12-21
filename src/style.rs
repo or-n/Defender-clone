@@ -39,7 +39,7 @@ pub const LASER_BOUND: Vec2 = Vec2::new(100.0 * LASER_SCALE.y, 38.0 * LASER_SCAL
 pub const LASER_SOUND: &str = "audio/laserLarge_003.ogg";
 
 pub const ORB_TEXTURE: &str = "sprites/star_tiny.png";
-pub const ORB_SCALE: Vec2 = Vec2::new(1.0, 1.0);
+pub const ORB_SCALE: Vec2 = Vec2::new(0.5, 0.5);
 pub const ORB_BOUND: Vec2 = Vec2::new(64.0 * 0.25 * ORB_SCALE.x, 64.0 * 0.25 * ORB_SCALE.y);
 
 pub const ENEMY_TEXTURE: &str = "sprites/shipGreen_manned.png";

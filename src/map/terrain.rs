@@ -6,7 +6,7 @@ use std::f64::consts::TAU;
 use super::MapScroll;
 use crate::{minimap, style, utils};
 
-pub const POINTS: usize = 500;
+pub const POINTS: usize = 1000;
 pub const SEGMENTS: usize = POINTS - 1;
 pub const SEGMENT_LENGTH: f32 = 10.0;
 pub const SEGMENT_HEIGHT: f32 = 400.0;

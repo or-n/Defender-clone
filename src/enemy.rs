@@ -60,7 +60,7 @@ pub fn visible(x: f32, camera_x: f32, window_width: f32) -> bool {
     x >= -half_screen_x && x <= half_screen_x
 }
 
-const ORB_SPEED: f32 = 450.0;
+const ORB_SPEED: f32 = 300.0;
 
 fn shoot_player(
     mut query: Query<(&Transform, &mut Enemy)>,
@@ -85,23 +85,29 @@ fn shoot_player(
                 - position
                 - dir * d * ORB_SPEED;
             let dir = Vec2::new(d.x, d.y).normalize();
-            let angle = Vec2::X.angle_between(dir) / 3.14 * 0.5;
+            let mut angle = (Vec2::X.angle_between(dir) / 3.14 * 0.5);
+            if angle < 0.0 {
+                angle += 1.0;
+            }
             let visible = visible(position.x, camera_position.x, window.width());
             if !visible {
                 enemy.last_outside = elapsed;
             }
+            let v = angle.min(1.0 - angle).min((angle - 0.5).abs()) * 4.0;
             if enemy.next_shot < elapsed && enemy.last_outside + 0.5 < elapsed {
-                commands.spawn(laser::Bundle::new(
-                    &assets,
-                    position + dir.extend(0.0) * 50.0,
-                    angle,
-                    ORB_SPEED,
-                    utils::bevy::bloom_hue(360.0),
-                    false,
-                    true,
-                ));
-                commands.spawn(audio(assets.laser_audio.clone(), style::VOLUME));
-                enemy.next_shot = elapsed + 4.0;
+                if rand::random::<f32>() < v.powf(0.25) {
+                    commands.spawn(laser::Bundle::new(
+                        &assets,
+                        position + dir.extend(0.0) * 50.0,
+                        angle,
+                        ORB_SPEED,
+                        utils::bevy::bloom_hue(360.0),
+                        false,
+                        true,
+                    ));
+                    commands.spawn(audio(assets.laser_audio.clone(), style::VOLUME));
+                }
+                enemy.next_shot = elapsed + 1.0;
             }
         }
     }
@@ -121,10 +127,10 @@ fn movement(
             let mut dy = rand::random::<f32>() * 2.0 - 1.0;
             let offset = style::BORDER_CONFINEMENT_OFFSET;
             let h = window.height() * (1.0 - style::MINIMAP_HEIGHT);
-            let mut p = enemy.position + Vec3::new(dx, dy, 0.0) * 800.0;
+            let mut p = enemy.position + Vec3::new(dx, dy, 0.0) * 400.0;
             while p.y < offset || p.y > h - offset {
                 dy = rand::random::<f32>() * 2.0 - 1.0;
-                p = enemy.position + Vec3::new(dx, dy, 0.0) * 800.0;
+                p = enemy.position + Vec3::new(dx, dy, 0.0) * 400.0;
             }
             enemy.desired_position = p;
             enemy.next_desired_position = elapsed + 1.0;
@@ -138,7 +144,7 @@ fn movement(
         };
         let dy = end.y - start.y;
         let d = Vec2::new(dx, dy).normalize().extend(0.0);
-        let step = 200.0 * time.delta_seconds();
+        let step = 100.0 * time.delta_seconds();
         enemy.position += d * step;
         let mut p = enemy.position;
         p.x = map_scroll.update(p.x);
