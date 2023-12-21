@@ -39,7 +39,7 @@ pub const LASER_BOUND: Vec2 = Vec2::new(100.0 * LASER_SCALE.y, 38.0 * LASER_SCAL
 pub const LASER_SOUND: &str = "audio/laserLarge_003.ogg";
 
 pub const ORB_TEXTURE: &str = "sprites/star_tiny.png";
-pub const ORB_SCALE: Vec2 = Vec2::new(2.0, 2.0);
+pub const ORB_SCALE: Vec2 = Vec2::new(1.0, 1.0);
 pub const ORB_BOUND: Vec2 = Vec2::new(64.0 * 0.25 * ORB_SCALE.x, 64.0 * 0.25 * ORB_SCALE.y);
 
 pub const ENEMY_TEXTURE: &str = "sprites/shipGreen_manned.png";
@@ -49,7 +49,12 @@ pub const ENEMY_BOUND: Vec2 = Vec2::new(124.0 * ENEMY_SCALE.x, 123.0 * ENEMY_SCA
 pub const COLLISION_SOUND: &str = "audio/space-explosion.ogg";
 
 pub const PERSON_TEXTURE: &str = "sprites/character_zombie_sheet.png";
-pub const PERSON_SCALE: Vec2 = Vec2::new(0.5, 0.5);
+pub const PERSON_SCALE: Vec2 = Vec2::new(0.3, 0.3);
 pub const PERSON_GRID_SIZE: Vec2 = Vec2::new(96.0, 128.0);
-pub const PERSON_CENTER: Vec2 = Vec2::new(0.0, -20.0);
-pub const PERSON_BOUND: Vec2 = Vec2::new(PERSON_GRID_SIZE.x * 0.8, PERSON_GRID_SIZE.y * 0.8);
+pub const PERSON_CENTER: Vec2 = Vec2::new(0.0, -20.0 * PERSON_SCALE.y);
+pub const PERSON_BOUND: Vec2 = Vec2::new(
+    PERSON_GRID_SIZE.x * PERSON_SCALE.x * 0.8,
+    PERSON_GRID_SIZE.y * PERSON_SCALE.y * 0.8,
+);
+
+pub const RESCUE_SOUND: &str = "audio/forceField_004.ogg";

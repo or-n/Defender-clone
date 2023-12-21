@@ -1,8 +1,13 @@
 use bevy::prelude::*;
 
-use crate::assets::GameAssets;
+use crate::assets::{audio, GameAssets};
 use crate::enemy::Enemy;
+use crate::player::*;
+use crate::score::Score;
 use crate::style;
+use crate::utils::bevy::hit::*;
+use crate::utils::bevy::projectile::Projectile;
+use crate::utils::bevy::state::Simulation;
 
 #[derive(Component)]
 pub struct Person;
@@ -14,7 +19,7 @@ pub struct AnimationTimer {
 
 #[derive(Component)]
 pub enum CharacterState {
-    CapturedBy(Entity),
+    CapturedBy(Entity, Vec2),
     Falling,
     Grounded,
 }
@@ -24,6 +29,8 @@ pub struct Bundle {
     state: CharacterState,
     sprite_sheet: SpriteSheetBundle,
     person: Person,
+    laser_hit: Hittable<Projectile>,
+    player_hit: Hittable<Player>,
 }
 
 pub struct Plug;
@@ -33,7 +40,10 @@ impl Plugin for Plug {
         app.insert_resource(AnimationTimer {
             timer: Timer::from_seconds(0.1, TimerMode::Repeating),
         })
-        .add_systems(Update, update);
+        .add_systems(
+            PostUpdate,
+            (update, laser_hit, player_hit).run_if(in_state(Simulation::Running)),
+        );
     }
 }
 
@@ -47,36 +57,38 @@ pub fn bundle(state: CharacterState, assets: &GameAssets) -> Bundle {
             ..default()
         },
         person: Person,
+        laser_hit: Hittable::<Projectile>::new(style::PERSON_BOUND),
+        player_hit: Hittable::<Player>::new(style::PERSON_BOUND),
     }
 }
 
-pub const PERSON_OFFSET: Vec3 = Vec3::new(0.0, -40.0, 0.0);
+pub const ENEMY_OFFSET: Vec2 = Vec2::new(0.0, -40.0);
+pub const PLAYER_OFFSET: Vec2 = Vec2::new(0.0, -20.0);
 
 pub fn update(
     mut query: Query<(&mut CharacterState, &mut Transform, &mut TextureAtlasSprite), With<Person>>,
-    captor_query: Query<&Transform, (With<Enemy>, Without<Person>)>,
+    captor_query: Query<&Transform, Without<Person>>,
     time: Res<Time>,
     mut timer: ResMut<AnimationTimer>,
 ) {
     timer.timer.tick(time.delta());
     for (mut state, mut transform, mut sprite) in query.iter_mut() {
-        if let CharacterState::CapturedBy(entity) = *state {
-            if let Err(_) = captor_query.get(entity) {
+        if let CharacterState::CapturedBy(entity, _) = *state {
+            if let Err(e) = captor_query.get(entity) {
                 *state = CharacterState::Falling;
             }
         }
         match *state {
-            CharacterState::CapturedBy(entity) => {
+            CharacterState::CapturedBy(entity, offset) => {
                 sprite.index = 0;
                 if let Ok(captor) = captor_query.get(entity) {
-                    transform.translation = captor.translation + PERSON_OFFSET;
+                    transform.translation = captor.translation + offset.extend(0.0);
                 }
             }
             CharacterState::Falling => {
                 sprite.index = 4;
-                transform.translation.y -= 100.0 * time.delta_seconds();
-                let bound =
-                    (style::PERSON_BOUND.y + style::PERSON_CENTER.y) * style::PERSON_SCALE.y;
+                transform.translation.y -= 50.0 * time.delta_seconds();
+                let bound = style::PERSON_BOUND.y + style::PERSON_CENTER.y;
                 if transform.translation.y < bound {
                     transform.translation.y = bound;
                     *state = CharacterState::Grounded;
@@ -89,6 +101,32 @@ pub fn update(
                         sprite.index = 0;
                     }
                 }
+            }
+        }
+    }
+}
+
+fn laser_hit(query: Query<(Entity, &Hittable<Projectile>), With<Person>>, mut commands: Commands) {
+    for (person_entity, hittable) in query.iter() {
+        if let Some(_) = hittable.hit_entity {
+            commands.entity(person_entity).despawn();
+        }
+    }
+}
+
+fn player_hit(
+    mut query: Query<(&Hittable<Player>, &mut CharacterState), With<Person>>,
+    mut commands: Commands,
+    controls: Res<input::Controls>,
+    mut score: ResMut<Score>,
+    assets: Res<GameAssets>,
+) {
+    for (hittable, mut state) in query.iter_mut() {
+        if let Some(player_entity) = hittable.hit_entity {
+            if controls.rescue && !matches!(*state, CharacterState::CapturedBy(_, _)) {
+                score.value += 100;
+                *state = CharacterState::CapturedBy(player_entity, PLAYER_OFFSET);
+                commands.spawn(audio(assets.rescue_audio.clone(), style::VOLUME));
             }
         }
     }

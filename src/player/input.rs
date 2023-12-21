@@ -1,14 +1,21 @@
-use bevy::prelude::*;
 use crate::utils;
+use bevy::{input::mouse::MouseButtonInput, prelude::*};
 use utils::{bevy::state::Simulation, Side};
+
+#[derive(Clone, Copy)]
+enum Bind {
+    Key(KeyCode),
+    Button(MouseButton),
+}
 
 #[derive(Resource)]
 pub struct Bindings {
-    pub move_up: KeyCode,
-    pub move_down: KeyCode,
-    pub move_left: KeyCode,
-    pub move_right: KeyCode,
-    pub shoot: KeyCode,
+    pub move_up: Bind,
+    pub move_down: Bind,
+    pub move_left: Bind,
+    pub move_right: Bind,
+    pub shoot: Bind,
+    pub rescue: Bind,
 }
 
 #[derive(Resource)]
@@ -18,6 +25,7 @@ pub struct Controls {
     pub move_left: bool,
     pub move_right: bool,
     pub shoot: bool,
+    pub rescue: bool,
 }
 
 impl Controls {
@@ -36,8 +44,7 @@ impl Controls {
     }
 
     pub fn vertical(&self) -> f32 {
-        (if self.move_up { 1.0 } else { 0.0 }) +
-        (if self.move_down { -1.0 } else { 0.0 })
+        (if self.move_up { 1.0 } else { 0.0 }) + (if self.move_down { -1.0 } else { 0.0 })
     }
 }
 
@@ -45,22 +52,21 @@ pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
-        app
-            .insert_resource(init_bindings())
+        app.insert_resource(init_bindings())
             .insert_resource(init_controls())
-            .add_systems(Update,
-                input.run_if(in_state(Simulation::Running))
-            );
+            .add_systems(Update, input.run_if(in_state(Simulation::Running)));
     }
 }
 
 fn init_bindings() -> Bindings {
+    use Bind::*;
     Bindings {
-        move_up: KeyCode::W,
-        move_down: KeyCode::S,
-        move_left: KeyCode::A,
-        move_right: KeyCode::D,
-        shoot: KeyCode::Space,
+        move_up: Key(KeyCode::W),
+        move_down: Key(KeyCode::S),
+        move_left: Key(KeyCode::A),
+        move_right: Key(KeyCode::D),
+        shoot: Key(KeyCode::Space),
+        rescue: Key(KeyCode::ControlLeft),
     }
 }
 
@@ -71,19 +77,26 @@ fn init_controls() -> Controls {
         move_left: false,
         move_right: false,
         shoot: false,
+        rescue: false,
     }
 }
 
 fn input(
     key: Res<Input<KeyCode>>,
+    button: Res<Input<MouseButton>>,
     bindings: Res<Bindings>,
     mut commands: Commands,
 ) {
+    let get = |x| match x {
+        Bind::Key(v) => key.pressed(v),
+        Bind::Button(v) => button.pressed(v),
+    };
     commands.insert_resource(Controls {
-        move_up: key.pressed(bindings.move_up),
-        move_down: key.pressed(bindings.move_down),
-        move_left: key.pressed(bindings.move_left),
-        move_right: key.pressed(bindings.move_right),
-        shoot: key.pressed(bindings.shoot),
+        move_up: get(bindings.move_up),
+        move_down: get(bindings.move_down),
+        move_left: get(bindings.move_left),
+        move_right: get(bindings.move_right),
+        shoot: get(bindings.shoot),
+        rescue: get(bindings.rescue),
     });
 }

@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy::window::PrimaryWindow;
 
 use crate::{
     assets::{audio, GameAssets},
@@ -9,7 +10,7 @@ use projectile::Projectile;
 use utils::bevy::{hit::*, projectile, state::Simulation};
 use utils::{range::Range, Side};
 
-mod input;
+pub mod input;
 mod thrust;
 
 #[derive(Component)]
@@ -27,7 +28,13 @@ impl Plugin for Plug {
             .add_systems(
                 Update,
                 (
-                    (laser_hit, movement, try_shooting, camera::follow_player)
+                    (
+                        laser_hit,
+                        detect_hits,
+                        movement,
+                        try_shooting,
+                        camera::follow_player,
+                    )
                         .chain()
                         .run_if(in_state(Simulation::Running)),
                     minimap::redraw,
@@ -79,11 +86,11 @@ pub fn spawn(
     ));
 }
 
-pub const HORIZONTAL_SPEED: f32 = 600.0;
+pub const HORIZONTAL_SPEED: f32 = 300.0;
 const VERTICAL_SPEED: f32 = 400.0;
 
 const ACCELERATION: f32 = 12000.0;
-const DECELERATION: f32 = 400.0;
+const DECELERATION: f32 = 800.0;
 
 fn movement(
     mut player_query: Query<(&mut Transform, &mut Player)>,
@@ -155,6 +162,32 @@ fn laser_hit(
                 position: player.translation,
             });
             game_over_event.send(GameOver);
+        }
+    }
+}
+
+fn detect_hits(
+    query: Query<(Entity, &Transform), With<Player>>,
+    mut hittable_query: Query<(&Transform, &mut Hittable<Player>)>,
+    camera_query: Query<&Transform, With<Camera>>,
+    window_query: Query<&Window, With<PrimaryWindow>>,
+) {
+    if let Ok((entity, player_transform)) = query.get_single() {
+        for (transform, mut hittable) in hittable_query.iter_mut() {
+            if hit(
+                player_transform.translation,
+                style::PLAYER_BOUND,
+                transform.translation,
+                hittable.hitbox,
+                camera_query.single().translation,
+                utils::bevy::size(window_query.single()),
+            )
+            .is_some()
+            {
+                hittable.hit_entity = Some(entity);
+            } else {
+                hittable.hit_entity = None;
+            }
         }
     }
 }

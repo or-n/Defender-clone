@@ -101,7 +101,7 @@ fn shoot_player(
                     true,
                 ));
                 commands.spawn(audio(assets.laser_audio.clone(), style::VOLUME));
-                enemy.next_shot = elapsed + 2.0;
+                enemy.next_shot = elapsed + 4.0;
             }
         }
     }
@@ -221,10 +221,12 @@ fn spawn_enemies(
                 Hittable::<Projectile>::new(style::ENEMY_BOUND),
             ))
             .id();
-        commands.spawn(person::bundle(
-            person::CharacterState::CapturedBy(enemy_entity),
-            &assets,
-        ));
+        if rand::random::<u32>() % 8 == 0 {
+            commands.spawn(person::bundle(
+                person::CharacterState::CapturedBy(enemy_entity, person::ENEMY_OFFSET),
+                &assets,
+            ));
+        }
         enemies.count += 1;
     }
 }
