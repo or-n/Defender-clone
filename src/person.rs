@@ -2,12 +2,13 @@ use bevy::prelude::*;
 
 use crate::assets::{audio, GameAssets};
 use crate::enemy::Enemy;
-use crate::player::*;
+use crate::minimap;
 use crate::score::Score;
 use crate::style;
 use crate::utils::bevy::hit::*;
 use crate::utils::bevy::projectile::Projectile;
 use crate::utils::bevy::state::Simulation;
+use crate::{map, player::*};
 
 #[derive(Component)]
 pub struct Person;
@@ -31,6 +32,8 @@ pub struct Bundle {
     person: Person,
     laser_hit: Hittable<Projectile>,
     player_hit: Hittable<Player>,
+    scroll: map::Scroll,
+    confine: map::Confine,
 }
 
 pub struct Plug;
@@ -42,23 +45,43 @@ impl Plugin for Plug {
         })
         .add_systems(
             PostUpdate,
-            (update, laser_hit, player_hit).run_if(in_state(Simulation::Running)),
+            (
+                try_drawing_on_minimap,
+                (update, laser_hit, player_hit).run_if(in_state(Simulation::Running)),
+            ),
         );
     }
 }
 
-pub fn bundle(state: CharacterState, assets: &GameAssets) -> Bundle {
+fn try_drawing_on_minimap(
+    mut gizmos: Gizmos,
+    query: Query<&GlobalTransform, With<Person>>,
+    mut minimap_event: EventReader<minimap::Ready>,
+) {
+    for minimap in minimap_event.read() {
+        for transform in query.iter() {
+            let p = minimap.normalize(transform.translation());
+            let p = minimap.f()(&p);
+            gizmos.circle(p, Vec3::Z, 2., style::MINIMAP_PERSON_COLOR);
+        }
+    }
+}
+
+pub fn bundle(position: Vec2, state: CharacterState, assets: &GameAssets) -> Bundle {
     Bundle {
         state,
         sprite_sheet: SpriteSheetBundle {
             texture_atlas: assets.person_texture_atlas.clone(),
             sprite: TextureAtlasSprite::new(0),
-            transform: Transform::from_scale(style::PERSON_SCALE.extend(1.0)),
+            transform: Transform::from_translation(position.extend(0.0))
+                .with_scale(style::PERSON_SCALE.extend(1.0)),
             ..default()
         },
         person: Person,
         laser_hit: Hittable::<Projectile>::new(style::PERSON_BOUND),
         player_hit: Hittable::<Player>::new(style::PERSON_BOUND),
+        scroll: map::Scroll,
+        confine: map::Confine,
     }
 }
 

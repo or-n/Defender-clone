@@ -195,6 +195,14 @@ fn spawn_enemies(
     for person in person_query.iter() {
         commands.entity(person).despawn();
     }
+    for _ in 0..5 {
+        let bound = style::PERSON_BOUND.y + style::PERSON_CENTER.y;
+        commands.spawn(person::bundle(
+            Vec2::new(rand::random::<f32>() * map::SIZE, bound),
+            person::CharacterState::Grounded,
+            &assets,
+        ));
+    }
     for _ in 0..enemies.wave.min(style::MAX_ENEMY_COUNT) {
         let mut x = rand::random::<f32>() * map::SIZE;
         x = map_scroll.update(x);
@@ -229,6 +237,7 @@ fn spawn_enemies(
             .id();
         if rand::random::<u32>() % 8 == 0 {
             commands.spawn(person::bundle(
+                desired_position.xy(),
                 person::CharacterState::CapturedBy(enemy_entity, person::ENEMY_OFFSET),
                 &assets,
             ));
