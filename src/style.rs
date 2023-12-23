@@ -58,4 +58,4 @@ pub const PERSON_BOUND: Vec2 = Vec2::new(
     PERSON_GRID_SIZE.y * PERSON_SCALE.y * 0.8,
 );
 
-pub const RESCUE_SOUND: &str = "audio/forceField_004.ogg";
+pub const CAPTURE_SOUND: &str = "audio/forceField_004.ogg";

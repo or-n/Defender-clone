@@ -33,7 +33,6 @@ pub struct Bundle {
     laser_hit: Hittable<Projectile>,
     player_hit: Hittable<Player>,
     scroll: map::Scroll,
-    confine: map::Confine,
 }
 
 pub struct Plug;
@@ -81,7 +80,6 @@ pub fn bundle(position: Vec2, state: CharacterState, assets: &GameAssets) -> Bun
         laser_hit: Hittable::<Projectile>::new(style::PERSON_BOUND),
         player_hit: Hittable::<Player>::new(style::PERSON_BOUND),
         scroll: map::Scroll,
-        confine: map::Confine,
     }
 }
 
@@ -149,7 +147,7 @@ fn player_hit(
             if controls.rescue && !matches!(*state, CharacterState::CapturedBy(_, _)) {
                 score.value += 100;
                 *state = CharacterState::CapturedBy(player_entity, PLAYER_OFFSET);
-                commands.spawn(audio(assets.rescue_audio.clone(), style::VOLUME));
+                commands.spawn(audio(assets.capture_audio.clone(), style::VOLUME));
             }
         }
     }

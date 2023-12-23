@@ -20,6 +20,7 @@ pub struct Enemy {
     next_shot: f32,
     next_desired_position: f32,
     last_outside: f32,
+    has_person: bool,
 }
 
 #[derive(Resource)]
@@ -114,39 +115,81 @@ fn shoot_player(
 }
 
 fn movement(
-    mut query: Query<(&mut Transform, &mut Enemy)>,
+    mut query: Query<(Entity, &mut Transform, &mut Enemy)>,
     window_query: Query<&Window, With<PrimaryWindow>>,
     time: Res<Time>,
     map_scroll: Res<map::MapScroll>,
+    mut person_query: Query<
+        (&Transform, &mut person::CharacterState),
+        (With<Person>, Without<Enemy>),
+    >,
+    assets: Res<GameAssets>,
+    mut commands: Commands,
 ) {
     let elapsed = time.elapsed_seconds();
     let window = window_query.single();
-    for (mut transform, mut enemy) in query.iter_mut() {
+    for (entity, mut transform, mut enemy) in query.iter_mut() {
         if enemy.next_desired_position < elapsed {
-            let dx = rand::random::<f32>() * 2.0 - 1.0;
-            let mut dy = rand::random::<f32>() * 2.0 - 1.0;
-            let offset = style::BORDER_CONFINEMENT_OFFSET;
-            let h = window.height() * (1.0 - style::MINIMAP_HEIGHT);
-            let mut p = enemy.position + Vec3::new(dx, dy, 0.0) * 400.0;
-            while p.y < offset || p.y > h - offset {
-                dy = rand::random::<f32>() * 2.0 - 1.0;
-                p = enemy.position + Vec3::new(dx, dy, 0.0) * 400.0;
+            let mut person_data = vec![];
+            if !enemy.has_person {
+                for (person_transform, mut person_state) in person_query.iter_mut() {
+                    if matches!(*person_state, person::CharacterState::Grounded) {
+                        let p = person_transform.translation - person::ENEMY_OFFSET.extend(0.0);
+                        let d = p - transform.translation;
+                        person_data.push((d.length(), p, person_state));
+                    }
+                }
             }
+            let x = person_data
+                .iter_mut()
+                .min_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+            let h = window.height() * (1.0 - style::MINIMAP_HEIGHT);
+            let random = |position: Vec3, factor: f32| {
+                let dx = rand::random::<f32>() * 2.0 - 1.0;
+                let mut dy = rand::random::<f32>() * 2.0 - 1.0;
+                let offset = style::BORDER_CONFINEMENT_OFFSET;
+                let mut p = position + Vec3::new(dx, dy, 0.0) * factor;
+                while p.y < offset || p.y > h - offset {
+                    dy = rand::random::<f32>() * 2.0 - 1.0;
+                    p = position + Vec3::new(dx, dy, 0.0) * factor;
+                }
+                p
+            };
+            let p = {
+                match x {
+                    Some(mut data) => {
+                        let mut p = data.1;
+                        let d = (p - transform.translation).length();
+                        if d < 10.0 {
+                            *data.2 =
+                                person::CharacterState::CapturedBy(entity, person::ENEMY_OFFSET);
+                            enemy.has_person = true;
+                            commands.spawn(audio(assets.capture_audio.clone(), style::VOLUME));
+                            random(transform.translation, 400.0)
+                        } else {
+                            let factor = if d < 400.0 { 0.0 } else { 400.0 };
+                            random(p, factor)
+                        }
+                    }
+                    _ => random(transform.translation, 400.0),
+                }
+            };
             enemy.desired_position = p;
             enemy.next_desired_position = elapsed + 1.0;
         }
-        let start = enemy.position;
-        let end = enemy.desired_position;
+        let mut start = transform.translation;
+        start.x = utils::my_fract(start.x / map::SIZE);
+        let mut end = enemy.desired_position;
+        end.x = utils::my_fract(end.x / map::SIZE);
         let dx = if (end.x - start.x).abs() > 0.5 {
             start.x - end.x
         } else {
             end.x - start.x
         };
         let dy = end.y - start.y;
-        let d = Vec2::new(dx, dy).normalize().extend(0.0);
+        let d = Vec2::new(dx * map::SIZE, dy).normalize().extend(0.0);
         let step = 100.0 * time.delta_seconds();
-        enemy.position += d * step;
-        let mut p = enemy.position;
+        let mut p = transform.translation + d * step;
         p.x = map_scroll.update(p.x);
         transform.translation = p;
     }
@@ -188,12 +231,10 @@ fn spawn_enemies(
     } else {
         enemies.wave += 1;
     }
-    commands.spawn(AudioBundle {
-        source: assets.begin_wave_audio.clone(),
-        settings: PlaybackSettings::DESPAWN.with_volume(utils::bevy::volume(style::VOICE_VOLUME)),
-    });
+    commands.spawn(audio(assets.begin_wave_audio.clone(), style::VOICE_VOLUME));
     for person in person_query.iter() {
         commands.entity(person).despawn();
+        score.value += 50;
     }
     for _ in 0..5 {
         let bound = style::PERSON_BOUND.y + style::PERSON_CENTER.y;
@@ -212,6 +253,7 @@ fn spawn_enemies(
         }
         let y = 100.0 + rand::random::<f32>() * 400.0;
         let desired_position = Vec3::new(x, y, 0.0);
+        let has_person = false;
         let enemy_entity = commands
             .spawn((
                 SpriteBundle {
@@ -229,13 +271,14 @@ fn spawn_enemies(
                     next_shot: 0.0,
                     next_desired_position: 0.0,
                     last_outside: 0.0,
+                    has_person,
                 },
                 map::Scroll,
                 map::Confine,
                 Hittable::<Projectile>::new(style::ENEMY_BOUND),
             ))
             .id();
-        if rand::random::<u32>() % 8 == 0 {
+        if has_person {
             commands.spawn(person::bundle(
                 desired_position.xy(),
                 person::CharacterState::CapturedBy(enemy_entity, person::ENEMY_OFFSET),
