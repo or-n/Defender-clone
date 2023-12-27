@@ -16,7 +16,6 @@ use utils::bevy::{hit::*, projectile, state::Simulation};
 #[derive(Component)]
 pub struct Enemy {
     desired_position: Vec3,
-    position: Vec3,
     next_shot: f32,
     next_desired_position: f32,
     last_outside: f32,
@@ -86,7 +85,7 @@ fn shoot_player(
                 - position
                 - dir * d * ORB_SPEED;
             let dir = Vec2::new(d.x, d.y).normalize();
-            let mut angle = (Vec2::X.angle_between(dir) / 3.14 * 0.5);
+            let mut angle = Vec2::X.angle_between(dir) / 3.14 * 0.5;
             if angle < 0.0 {
                 angle += 1.0;
             }
@@ -132,7 +131,7 @@ fn movement(
         if enemy.next_desired_position < elapsed {
             let mut person_data = vec![];
             if !enemy.has_person {
-                for (person_transform, mut person_state) in person_query.iter_mut() {
+                for (person_transform, person_state) in person_query.iter_mut() {
                     if matches!(*person_state, person::CharacterState::Grounded) {
                         let p = person_transform.translation - person::ENEMY_OFFSET.extend(0.0);
                         let d = p - transform.translation;
@@ -157,8 +156,8 @@ fn movement(
             };
             let p = {
                 match x {
-                    Some(mut data) => {
-                        let mut p = data.1;
+                    Some(data) => {
+                        let p = data.1;
                         let d = (p - transform.translation).length();
                         if d < 10.0 {
                             *data.2 =
@@ -232,11 +231,9 @@ fn spawn_enemies(
         enemies.wave += 1;
     }
     commands.spawn(audio(assets.begin_wave_audio.clone(), style::VOICE_VOLUME));
-    for person in person_query.iter() {
-        commands.entity(person).despawn();
-        score.value += 50;
-    }
-    for _ in 0..5 {
+    let n = person_query.iter().count();
+    score.value += 50 * n as u32;
+    for _ in 0..(8 - n) {
         let bound = style::PERSON_BOUND.y + style::PERSON_CENTER.y;
         commands.spawn(person::bundle(
             Vec2::new(rand::random::<f32>() * map::SIZE, bound),
@@ -266,7 +263,6 @@ fn spawn_enemies(
                     ..default()
                 },
                 Enemy {
-                    position: desired_position,
                     desired_position,
                     next_shot: 0.0,
                     next_desired_position: 0.0,

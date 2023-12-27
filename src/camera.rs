@@ -35,7 +35,7 @@ pub fn follow_player(
     if let Ok((transform, player)) = player_query.get_single() {
         let start = camera.translation.x;
         let speed = player.horizontal_speed.abs();
-        let normal = (speed / HORIZONTAL_SPEED);
+        let normal = speed / HORIZONTAL_SPEED;
         let t = normal.powf(1.0);
         let o = 0.0 * (1.0 - t) + 1.0 * t;
         let sign = player.horizontal_speed.signum();

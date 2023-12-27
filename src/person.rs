@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 
 use crate::assets::{audio, GameAssets};
-use crate::enemy::Enemy;
 use crate::minimap;
 use crate::score::Score;
 use crate::style;
@@ -95,7 +94,7 @@ pub fn update(
     timer.timer.tick(time.delta());
     for (mut state, mut transform, mut sprite) in query.iter_mut() {
         if let CharacterState::CapturedBy(entity, _) = *state {
-            if let Err(e) = captor_query.get(entity) {
+            if let Err(_) = captor_query.get(entity) {
                 *state = CharacterState::Falling;
             }
         }

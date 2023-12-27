@@ -1,5 +1,5 @@
 use crate::utils;
-use bevy::{input::mouse::MouseButtonInput, prelude::*};
+use bevy::prelude::*;
 use utils::{bevy::state::Simulation, Side};
 
 #[derive(Clone, Copy)]
@@ -10,12 +10,12 @@ enum Bind {
 
 #[derive(Resource)]
 pub struct Bindings {
-    pub move_up: Bind,
-    pub move_down: Bind,
-    pub move_left: Bind,
-    pub move_right: Bind,
-    pub shoot: Bind,
-    pub rescue: Bind,
+    move_up: Bind,
+    move_down: Bind,
+    move_left: Bind,
+    move_right: Bind,
+    shoot: Bind,
+    rescue: Bind,
 }
 
 #[derive(Resource)]
