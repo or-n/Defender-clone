@@ -1,5 +1,4 @@
-use bevy::core_pipeline::bloom::BloomSettings;
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::{core_pipeline::bloom::BloomSettings, prelude::*, window::PrimaryWindow};
 
 use crate::{
     player::{Player, HORIZONTAL_SPEED},
@@ -23,6 +22,13 @@ pub fn spawn(mut commands: Commands, window_query: Query<&Window, With<PrimaryWi
 
 const CAMERA_OFFSET: f32 = 0.618;
 const CAMERA_SPEED: f32 = HORIZONTAL_SPEED * 1.25;
+
+pub fn window_height_center(
+    window_query: Query<&Window, With<PrimaryWindow>>,
+    mut camera_query: Query<&mut Transform, With<Camera>>,
+) {
+    camera_query.single_mut().translation.y = window_query.single().height() / 2.0;
+}
 
 pub fn follow_player(
     player_query: Query<(&Transform, &Player)>,

@@ -1,8 +1,5 @@
-use bevy::{
-    prelude::*,
-    window::PrimaryWindow,
-};
-use crate::{utils, style};
+use crate::{style, utils};
+use bevy::{prelude::*, window::PrimaryWindow};
 
 pub mod terrain;
 
@@ -12,8 +9,7 @@ pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
-        app
-            .add_plugins(terrain::Plug)
+        app.add_plugins(terrain::Plug)
             .insert_resource(MapScroll::new(0.0))
             .add_systems(Update, scroll)
             .add_systems(PostUpdate, confine);
@@ -28,12 +24,12 @@ fn confine(
     window_query: Query<&Window, With<PrimaryWindow>>,
 ) {
     let offset = style::BORDER_CONFINEMENT_OFFSET;
-    let window = window_query.get_single().unwrap();
+    let window = window_query.single();
     for mut transform in query.iter_mut() {
         let position = transform.translation;
         transform.translation.y = position.y.clamp(
             offset,
-            window.height() * (1.0 - style::MINIMAP_HEIGHT) - offset
+            window.height() * (1.0 - style::MINIMAP_HEIGHT) - offset,
         );
     }
 }
@@ -51,7 +47,11 @@ impl MapScroll {
         let normalized = camera_x / SIZE;
         let map_index = normalized.floor();
         let camera_x = utils::my_fract(normalized);
-        MapScroll { map_index, camera_x, real_camera_x }
+        MapScroll {
+            map_index,
+            camera_x,
+            real_camera_x,
+        }
     }
 
     pub fn update(&self, x: f32) -> f32 {
@@ -79,8 +79,7 @@ fn scroll(
         let camera_x = camera_transform.translation.x;
         let map_scroll = MapScroll::new(camera_x);
         for mut transform in query.iter_mut() {
-            transform.translation.x =
-                map_scroll.update(transform.translation.x);
+            transform.translation.x = map_scroll.update(transform.translation.x);
         }
         commands.insert_resource(map_scroll);
     }

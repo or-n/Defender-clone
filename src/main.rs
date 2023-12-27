@@ -20,7 +20,16 @@ fn main() {
         .add_event::<minimap::Ready>()
         .add_event::<explosion::At>()
         .add_plugins((
-            DefaultPlugins,
+            DefaultPlugins.set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: "Defender".into(),
+                    mode: bevy::window::WindowMode::Fullscreen,
+                    fit_canvas_to_parent: true,
+                    prevent_default_event_handling: false,
+                    ..default()
+                }),
+                ..default()
+            }),
             utils::bevy::Plug,
             menu::Plug,
             map::Plug,
@@ -34,7 +43,7 @@ fn main() {
         .insert_resource(ClearColor(Color::BLACK))
         .insert_resource(Msaa::Sample4)
         .add_systems(Startup, (assets::load, camera::spawn))
-        .add_systems(Update, try_exiting)
+        .add_systems(Update, (try_exiting, camera::window_height_center))
         .run();
 }
 
