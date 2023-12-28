@@ -5,6 +5,7 @@ mod camera;
 mod enemy;
 mod explosion;
 mod game_over;
+mod high_scores;
 mod laser;
 mod map;
 mod menu;
@@ -39,6 +40,7 @@ fn main() {
             laser::Plug,
             explosion::Plug,
             game_over::Plug,
+            high_scores::Plug,
         ))
         .insert_resource(ClearColor(Color::BLACK))
         .insert_resource(Msaa::Sample4)

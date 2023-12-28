@@ -1,4 +1,4 @@
-use crate::{assets::GameAssets, style, utils};
+use crate::{assets::GameAssets, high_scores::*, score::Score, style, utils};
 use bevy::prelude::*;
 use utils::bevy::state::Simulation;
 
@@ -37,11 +37,18 @@ fn listen_for_game_over(
     }
 }
 
-fn change_state(mut commands: Commands, query: Query<(Entity, &ChangeState)>, time: Res<Time>) {
+fn change_state(
+    mut commands: Commands,
+    query: Query<(Entity, &ChangeState)>,
+    time: Res<Time>,
+    score: Res<Score>,
+    mut high_scores: ResMut<HighScores>,
+) {
     if let Ok((entity, change_state)) = query.get_single() {
         if change_state.elapsed + 0.5 < time.elapsed_seconds() {
             commands.insert_resource(NextState(Some(Simulation::Paused)));
             commands.entity(entity).despawn();
+            high_scores.save(score.value);
         }
     }
 }
