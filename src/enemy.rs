@@ -1,4 +1,4 @@
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::prelude::*;
 
 use crate::{
     assets::{audio, GameAssets},
@@ -65,14 +65,13 @@ const ORB_SPEED: f32 = 300.0;
 fn shoot_player(
     mut query: Query<(&Transform, &mut Enemy)>,
     player_query: Query<(&Transform, &Player)>,
-    window_query: Query<&Window, With<PrimaryWindow>>,
+    window_size: Res<window::Size>,
     camera_query: Query<&Transform, With<Camera>>,
     assets: Res<GameAssets>,
     mut commands: Commands,
     time: Res<Time>,
 ) {
     let elapsed = time.elapsed_seconds();
-    let window = window_query.single();
     let camera_position = camera_query.single().translation;
     if let Ok((player_transform, player)) = player_query.get_single() {
         let player_position = player_transform.translation;
@@ -89,8 +88,7 @@ fn shoot_player(
             if angle < 0.0 {
                 angle += 1.0;
             }
-            let visible = visible(position.x, camera_position.x, window.width());
-            if !visible {
+            if !visible(position.x, camera_position.x, window_size.0.x) {
                 enemy.last_outside = elapsed;
             }
             let v = angle.min(1.0 - angle).min((angle - 0.5).abs()) * 4.0;
@@ -143,15 +141,13 @@ fn movement(
                 .min_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
             let h = window_size.0.y * (1.0 - style::MINIMAP_SIZE.y);
             let offset = style::BORDER_CONFINEMENT_OFFSET;
+            let r = |factor: f32| (rand::random::<f32>() * 2.0 - 1.0) * factor;
             let random = |position: Vec3, factor: f32| {
-                let dx = rand::random::<f32>() * 2.0 - 1.0;
-                let mut dy = rand::random::<f32>() * 2.0 - 1.0;
-                let mut p = position + Vec3::new(dx, dy, 0.0) * factor;
-                while p.y < offset || p.y > h - offset {
-                    dy = rand::random::<f32>() * 2.0 - 1.0;
-                    p = position + Vec3::new(dx, dy, 0.0) * factor;
+                let (dx, mut dy) = (r(factor), r(factor));
+                while dy < -position.y + offset || dy > h - position.y - offset {
+                    dy = r(factor);
                 }
-                p
+                position + Vec3::new(dx, dy, 0.0)
             };
             let max_change = 400.0;
             let p = {
@@ -217,13 +213,22 @@ pub struct Bundle {
     scroll: map::Scroll,
     confine: map::Confine,
     laser_hit: Hittable<Projectile>,
+    player_hit: Hittable<Player>,
 }
 
 pub fn bundle(position: Vec3, has_person: bool, is_mutant: bool, assets: &GameAssets) -> Bundle {
-    let (scale, texture) = if is_mutant {
-        (style::MUTANT_SCALE, assets.mutant_texture.clone())
+    let (scale, texture, bound) = if is_mutant {
+        (
+            style::MUTANT_SCALE,
+            assets.mutant_texture.clone(),
+            style::MUTANT_BOUND,
+        )
     } else {
-        (style::ENEMY_SCALE, assets.enemy_texture.clone())
+        (
+            style::ENEMY_SCALE,
+            assets.enemy_texture.clone(),
+            style::ENEMY_BOUND,
+        )
     };
     Bundle {
         sprite_bundle: SpriteBundle {
@@ -244,14 +249,15 @@ pub fn bundle(position: Vec3, has_person: bool, is_mutant: bool, assets: &GameAs
         },
         scroll: map::Scroll,
         confine: map::Confine,
-        laser_hit: Hittable::<Projectile>::new(style::ENEMY_BOUND),
+        laser_hit: Hittable::<Projectile>::new(bound),
+        player_hit: Hittable::<Player>::new(bound),
     }
 }
 
 fn spawn_enemies(
     mut commands: Commands,
     assets: Res<GameAssets>,
-    window_query: Query<&Window, With<PrimaryWindow>>,
+    window_size: Res<window::Size>,
     camera_query: Query<&Transform, With<Camera>>,
     mut enemies: ResMut<EnemiesCount>,
     mut score: ResMut<Score>,
@@ -262,7 +268,6 @@ fn spawn_enemies(
     if enemies.count > 0 || player_query.get_single().is_err() {
         return;
     }
-    let window = window_query.single();
     let camera_position = camera_query.single().translation;
     score.value += enemies.wave * 10;
     if enemies.wave == 0 {
@@ -284,7 +289,7 @@ fn spawn_enemies(
     for _ in 0..enemies.wave.min(style::MAX_ENEMY_COUNT) {
         let mut x = rand::random::<f32>() * map::SIZE;
         x = map_scroll.update(x);
-        while visible(x, camera_position.x, window.width() * 1.5) {
+        while visible(x, camera_position.x, window_size.0.x * 1.5) {
             x = rand::random::<f32>() * map::SIZE;
             x = map_scroll.update(x);
         }
@@ -326,33 +331,24 @@ fn laser_hit(
 }
 
 fn player_hit(
-    query: Query<(Entity, &Transform), With<Enemy>>,
-    player_query: Query<(Entity, &Transform), With<Player>>,
+    query: Query<(Entity, &Transform, &Hittable<Player>), With<Enemy>>,
+    player_query: Query<&Transform, With<Player>>,
     mut explosion_event: EventWriter<explosion::At>,
     mut commands: Commands,
     mut enemies: ResMut<EnemiesCount>,
     mut game_over_event: EventWriter<GameOver>,
 ) {
-    if let Ok((player_entity, player_transform)) = player_query.get_single() {
-        let player_position = player_transform.translation;
-        for (enemy_entity, enemy_transform) in query.iter() {
-            let enemy_position = enemy_transform.translation;
-            if box_intersection(
-                player_position.xy(),
-                style::PLAYER_BOUND,
-                enemy_position.xy(),
-                style::ENEMY_BOUND,
-            )
-            .is_some()
-            {
+    for (enemy_entity, enemy_transform, hittable) in query.iter() {
+        if let Some(player_entity) = hittable.hit_entity {
+            if let Ok(player_transform) = player_query.get(player_entity) {
                 commands.entity(player_entity).despawn();
                 commands.entity(enemy_entity).despawn();
                 enemies.count -= 1;
                 explosion_event.send(explosion::At {
-                    position: player_position,
+                    position: player_transform.translation,
                 });
                 explosion_event.send(explosion::At {
-                    position: enemy_position,
+                    position: enemy_transform.translation,
                 });
                 game_over_event.send(GameOver);
                 break;
