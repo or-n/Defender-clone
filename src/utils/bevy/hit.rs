@@ -1,3 +1,4 @@
+use super::window;
 use bevy::prelude::*;
 use std::marker::PhantomData;
 
@@ -44,4 +45,34 @@ pub fn box_intersection(a: Vec2, a_bound: Vec2, b: Vec2, b_bound: Vec2) -> Optio
     let (x, size_x) = process(coord(a.x, b.x, a_half.x, b_half.x)?);
     let (y, size_y) = process(coord(a.y, b.y, a_half.y, b_half.y)?);
     Some((Vec2::new(x, y), Vec2::new(size_x, size_y)))
+}
+
+pub trait Bound {
+    fn bound(&self) -> Vec2;
+}
+
+pub fn detect_hits<T: Bound + std::marker::Sync + std::marker::Send + bevy::prelude::Component>(
+    query: Query<(Entity, &Transform, &T)>,
+    mut hittable_query: Query<(&Transform, &mut Hittable<T>)>,
+    camera_query: Query<&Transform, With<Camera>>,
+    window_size: Res<window::Size>,
+) {
+    for (hittable_transform, mut hittable) in hittable_query.iter_mut() {
+        hittable.hit_entity = None;
+        for (entity, transform, data) in query.iter() {
+            if hit(
+                transform.translation,
+                data.bound(),
+                hittable_transform.translation,
+                hittable.hitbox,
+                camera_query.single().translation,
+                window_size.0,
+            )
+            .is_some()
+            {
+                hittable.hit_entity = Some(entity);
+                break;
+            }
+        }
+    }
 }

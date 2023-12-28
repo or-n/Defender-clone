@@ -66,7 +66,8 @@ impl Plugin for Plug {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (despawn_outside_window, detect_hits).run_if(in_state(Simulation::Running)),
+            (despawn_outside_window, detect_hits::<Projectile>)
+                .run_if(in_state(Simulation::Running)),
         );
     }
 }
@@ -89,30 +90,8 @@ fn despawn_outside_window(
     }
 }
 
-fn detect_hits(
-    query: Query<(Entity, &Transform, &Projectile)>,
-    mut hittable_query: Query<(&Transform, &mut Hittable<Projectile>)>,
-    camera_query: Query<&Transform, With<Camera>>,
-    window_size: Res<window::Size>,
-) {
-    for (transform, mut hittable) in hittable_query.iter_mut() {
-        for (entity, projectile_transform, projectile) in query.iter() {
-            if !projectile.is_damaging {
-                continue;
-            }
-            if hit(
-                projectile_transform.translation,
-                projectile.bound,
-                transform.translation,
-                hittable.hitbox,
-                camera_query.single().translation,
-                window_size.0,
-            )
-            .is_some()
-            {
-                hittable.hit_entity = Some(entity);
-                break;
-            }
-        }
+impl Bound for Projectile {
+    fn bound(&self) -> Vec2 {
+        self.bound
     }
 }

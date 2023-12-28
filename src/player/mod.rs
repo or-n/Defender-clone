@@ -6,7 +6,7 @@ use crate::{
 };
 use game_over::GameOver;
 use projectile::Projectile;
-use utils::bevy::{hit::*, projectile, state::Simulation, window};
+use utils::bevy::{hit::*, projectile, state::Simulation};
 use utils::{range::Range, Side};
 
 pub mod input;
@@ -29,7 +29,7 @@ impl Plugin for Plug {
                 (
                     (
                         laser_hit,
-                        detect_hits,
+                        detect_hits::<Player>,
                         movement,
                         try_shooting,
                         camera::follow_player,
@@ -165,28 +165,8 @@ fn laser_hit(
     }
 }
 
-fn detect_hits(
-    query: Query<(Entity, &Transform), With<Player>>,
-    mut hittable_query: Query<(&Transform, &mut Hittable<Player>)>,
-    camera_query: Query<&Transform, With<Camera>>,
-    window_size: Res<window::Size>,
-) {
-    if let Ok((entity, player_transform)) = query.get_single() {
-        for (transform, mut hittable) in hittable_query.iter_mut() {
-            if hit(
-                player_transform.translation,
-                style::PLAYER_BOUND,
-                transform.translation,
-                hittable.hitbox,
-                camera_query.single().translation,
-                window_size.0,
-            )
-            .is_some()
-            {
-                hittable.hit_entity = Some(entity);
-            } else {
-                hittable.hit_entity = None;
-            }
-        }
+impl Bound for Player {
+    fn bound(&self) -> Vec2 {
+        style::PLAYER_BOUND
     }
 }
