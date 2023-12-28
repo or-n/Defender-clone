@@ -11,6 +11,8 @@ pub struct GameAssets {
     pub capture_audio: Handle<AudioSource>,
     pub player_texture: Handle<Image>,
     pub enemy_texture: Handle<Image>,
+    pub mutant_texture: Handle<Image>,
+    pub bomber_texture: Handle<Image>,
     pub orb_texture: Handle<Image>,
     pub laser_texture: Handle<Image>,
     pub person_texture_atlas: Handle<TextureAtlas>,
@@ -34,6 +36,8 @@ pub fn load(
         capture_audio: asset_server.load(style::CAPTURE_SOUND),
         player_texture: asset_server.load(style::PLAYER_TEXTURE),
         enemy_texture: asset_server.load(style::ENEMY_TEXTURE),
+        mutant_texture: asset_server.load(style::MUTANT_TEXTURE),
+        bomber_texture: asset_server.load(style::BOMBER_TEXTURE),
         orb_texture: asset_server.load(style::ORB_TEXTURE),
         laser_texture: asset_server.load(style::LASER_TEXTURE),
         person_texture_atlas: texture_atlases.add(texture_atlas(

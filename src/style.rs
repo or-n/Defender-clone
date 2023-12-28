@@ -47,6 +47,14 @@ pub const ENEMY_TEXTURE: &str = "sprites/shipGreen_manned.png";
 pub const ENEMY_SCALE: Vec2 = Vec2::new(0.375, 0.375);
 pub const ENEMY_BOUND: Vec2 = Vec2::new(124.0 * ENEMY_SCALE.x, 123.0 * ENEMY_SCALE.y);
 
+pub const MUTANT_TEXTURE: &str = "sprites/shipPink_manned.png";
+pub const MUTANT_SCALE: Vec2 = Vec2::new(0.375, 0.375);
+pub const MUTANT_BOUND: Vec2 = Vec2::new(124.0 * MUTANT_SCALE.x, 127.0 * MUTANT_SCALE.y);
+
+pub const BOMBER_TEXTURE: &str = "sprites/shipBeige_manned.png";
+pub const BOMBER_SCALE: Vec2 = Vec2::new(0.375, 0.375);
+pub const BOMBER_BOUND: Vec2 = Vec2::new(124.0 * BOMBER_SCALE.x, 122.0 * BOMBER_SCALE.y);
+
 pub const COLLISION_SOUND: &str = "audio/space-explosion.ogg";
 
 pub const PERSON_TEXTURE: &str = "sprites/character_zombie_sheet.png";
