@@ -94,20 +94,19 @@ fn button_change(
 }
 
 fn spawn(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let minimap_width = style::MINIMAP_WIDTH * 100.0;
-    let minimap_height = style::MINIMAP_HEIGHT * 100.0;
+    let minimap_size = style::MINIMAP_SIZE * 100.0;
     let pad = 0.125 * 600.0 * 0.125;
     commands
         .spawn((
             NodeBundle {
                 style: Style {
                     width: Val::Percent(50.0),
-                    height: Val::Percent(100.0 - minimap_height),
+                    height: Val::Percent(100.0 - minimap_size.y),
                     justify_content: JustifyContent::Default,
                     flex_direction: FlexDirection::Column,
                     row_gap: Val::Px(pad),
-                    top: Val::Percent(minimap_height),
-                    left: Val::Percent((100.0 - minimap_width) * 0.5),
+                    top: Val::Percent(minimap_size.y),
+                    left: Val::Percent((100.0 - minimap_size.x) * 0.5),
                     padding: UiRect::all(Val::Px(pad)),
                     border: UiRect::horizontal(Val::Px(1.0)),
                     ..default()

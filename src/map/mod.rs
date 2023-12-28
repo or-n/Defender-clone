@@ -1,5 +1,8 @@
-use crate::{style, utils};
-use bevy::{prelude::*, window::PrimaryWindow};
+use crate::{
+    style,
+    utils::{self, bevy::window},
+};
+use bevy::prelude::*;
 
 pub mod terrain;
 
@@ -19,17 +22,13 @@ impl Plugin for Plug {
 #[derive(Component)]
 pub struct Confine;
 
-fn confine(
-    mut query: Query<&mut Transform, With<Confine>>,
-    window_query: Query<&Window, With<PrimaryWindow>>,
-) {
+fn confine(mut query: Query<&mut Transform, With<Confine>>, window_size: Res<window::Size>) {
     let offset = style::BORDER_CONFINEMENT_OFFSET;
-    let window = window_query.single();
     for mut transform in query.iter_mut() {
         let position = transform.translation;
         transform.translation.y = position.y.clamp(
             offset,
-            window.height() * (1.0 - style::MINIMAP_HEIGHT) - offset,
+            window_size.0.y * (1.0 - style::MINIMAP_SIZE.y) - offset,
         );
     }
 }

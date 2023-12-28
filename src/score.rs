@@ -21,7 +21,7 @@ impl Plugin for Plug {
     }
 }
 
-const TEXT_SPACE: f32 = 0.5 * (1.0 - style::MINIMAP_WIDTH);
+const TEXT_SPACE: f32 = 0.5 * (1.0 - style::MINIMAP_SIZE.x);
 
 fn spawn_score_text(
     mut commands: Commands,
@@ -38,7 +38,7 @@ fn spawn_score_text(
         })])
         .with_style(Style {
             position_type: PositionType::Absolute,
-            top: Val::Px((window.height() * style::MINIMAP_HEIGHT - font_size) * 0.5),
+            top: Val::Px((window.height() * style::MINIMAP_SIZE.y - font_size) * 0.5),
             right: Val::Px(window.width() * (1.0 - TEXT_SPACE) + 15.0),
             ..default()
         }),
@@ -58,7 +58,7 @@ fn update_score_text(
     let (mut text, mut style) = query.single_mut();
     let window = window_query.single();
     let font_size = style::SCORE_FONT_SIZE;
-    style.top = Val::Px((window.height() * style::MINIMAP_HEIGHT - font_size) * 0.5);
+    style.top = Val::Px((window.height() * style::MINIMAP_SIZE.y - font_size) * 0.5);
     style.right = Val::Px(window.width() * (1.0 - TEXT_SPACE) + 15.0);
     text.sections[0].value = format!("{:06}", score.value);
     text.sections[0].style.color = Color::Hsla {

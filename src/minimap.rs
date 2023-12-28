@@ -14,14 +14,10 @@ pub struct Ready {
 impl Ready {
     fn new(window_size: Vec2, camera_position: Vec3) -> Ready {
         let transform = {
-            let scale = Vec3::new(
-                window_size.x * style::MINIMAP_WIDTH,
-                window_size.y * style::MINIMAP_HEIGHT,
-                0.0,
-            );
+            let scale = (window_size * style::MINIMAP_SIZE).extend(0.0);
             let translation = Vec3::new(
-                window_size.x * style::MINIMAP_WIDTH * (-0.5),
-                window_size.y * (0.5 - style::MINIMAP_HEIGHT),
+                window_size.x * style::MINIMAP_SIZE.x * (-0.5),
+                window_size.y * (0.5 - style::MINIMAP_SIZE.y),
                 0.0,
             );
             Transform::from_scale(scale).with_translation(camera_position + translation)

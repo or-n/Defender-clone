@@ -141,7 +141,7 @@ fn movement(
             let x = person_data
                 .iter_mut()
                 .min_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
-            let h = window_size.0.y * (1.0 - style::MINIMAP_HEIGHT);
+            let h = window_size.0.y * (1.0 - style::MINIMAP_SIZE.y);
             let offset = style::BORDER_CONFINEMENT_OFFSET;
             let random = |position: Vec3, factor: f32| {
                 let dx = rand::random::<f32>() * 2.0 - 1.0;
@@ -367,7 +367,7 @@ fn mutant_transform(
     mut commands: Commands,
     window_size: Res<window::Size>,
 ) {
-    let h = window_size.0.y * (1.0 - style::MINIMAP_HEIGHT);
+    let h = window_size.0.y * (1.0 - style::MINIMAP_SIZE.y);
     let offset = style::BORDER_CONFINEMENT_OFFSET;
     for (entity, transform, enemy) in query.iter() {
         let position = transform.translation;

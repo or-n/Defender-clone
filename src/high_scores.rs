@@ -1,5 +1,8 @@
-use crate::{style, utils};
-use bevy::{prelude::*, window::PrimaryWindow};
+use crate::{
+    style,
+    utils::{self, bevy::window},
+};
+use bevy::prelude::*;
 use std::f32::consts::TAU;
 use utils::bevy::state::Simulation;
 
@@ -102,7 +105,7 @@ impl<'a> Reader<'a> {
 #[derive(Component)]
 struct HighScoreText;
 
-const TEXT_SPACE: f32 = 0.5 * (1.0 - style::MINIMAP_WIDTH);
+const TEXT_SPACE: f32 = 0.5 * (1.0 - style::MINIMAP_SIZE.x);
 
 fn spawn_high_score_text(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font_size = style::SCORE_FONT_SIZE;
@@ -128,13 +131,12 @@ fn update_high_score_text(
     mut query: Query<(&mut Text, &mut Style), With<HighScoreText>>,
     high_scores: Res<HighScores>,
     time: Res<Time>,
-    window_query: Query<&Window, With<PrimaryWindow>>,
+    window_size: Res<window::Size>,
 ) {
     let (mut text, mut style) = query.single_mut();
-    let window = window_query.single();
     let font_size = style::SCORE_FONT_SIZE;
-    style.top = Val::Px(window.height() * style::MINIMAP_HEIGHT + font_size * 0.5);
-    style.right = Val::Px(window.width() * (1.0 - TEXT_SPACE) + 15.0);
+    style.top = Val::Px(window_size.0.y * style::MINIMAP_SIZE.y + font_size * 0.5);
+    style.right = Val::Px(window_size.0.x * (1.0 - TEXT_SPACE) + 15.0);
     text.sections[0].value = format!("TOP {}\n", high_scores.scores.len());
     text.sections[1].value = high_scores.write();
     text.sections[1].style.color = Color::Hsla {

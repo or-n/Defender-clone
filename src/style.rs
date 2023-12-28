@@ -16,8 +16,7 @@ pub const GAME_OVER_SOUND: &str = "audio/game_over.ogg";
 pub const MIN_ENEMY_COUNT: u32 = 5;
 pub const MAX_ENEMY_COUNT: u32 = 15;
 
-pub const MINIMAP_WIDTH: f32 = 0.5;
-pub const MINIMAP_HEIGHT: f32 = 0.125;
+pub const MINIMAP_SIZE: Vec2 = Vec2::new(0.5, 0.125);
 pub const SCORE_FONT_SIZE: f32 = 60.0;
 pub const SCORE_COLOR: Color = Color::WHITE;
 pub const MINIMAP_COLOR: Color = Color::CYAN;
