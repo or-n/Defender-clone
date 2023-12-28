@@ -20,6 +20,7 @@ pub struct Enemy {
     next_desired_position: f32,
     last_outside: f32,
     has_person: bool,
+    is_mutant: bool,
 }
 
 #[derive(Resource)]
@@ -91,6 +92,11 @@ fn shoot_player(
             if !visible(position.x, camera_position.x, window_size.0.x) {
                 enemy.last_outside = elapsed;
             }
+            let (orb_color, shot_delay) = if enemy.is_mutant {
+                (utils::bevy::bloom_hue(120.0), 0.25)
+            } else {
+                (utils::bevy::bloom_hue(360.0), 1.0)
+            };
             let v = angle.min(1.0 - angle).min((angle - 0.5).abs()) * 4.0;
             if enemy.next_shot < elapsed && enemy.last_outside + 0.5 < elapsed {
                 if rand::random::<f32>() < v.powf(0.25) {
@@ -99,13 +105,13 @@ fn shoot_player(
                         position + dir.extend(0.0) * 50.0,
                         angle,
                         ORB_SPEED,
-                        utils::bevy::bloom_hue(360.0),
+                        orb_color,
                         false,
                         true,
                     ));
                     commands.spawn(audio(assets.laser_audio.clone(), style::VOLUME));
                 }
-                enemy.next_shot = elapsed + 1.0;
+                enemy.next_shot = elapsed + shot_delay;
             }
         }
     }
@@ -194,14 +200,19 @@ fn movement(
 
 fn try_drawing_on_minimap(
     mut gizmos: Gizmos,
-    enemy_query: Query<&Transform, With<Enemy>>,
+    enemy_query: Query<(&Transform, &Enemy)>,
     mut minimap_event: EventReader<minimap::Ready>,
 ) {
     for minimap in minimap_event.read() {
-        for enemy_transform in enemy_query.iter() {
+        for (enemy_transform, enemy) in enemy_query.iter() {
             let p = minimap.normalize(enemy_transform.translation);
             let p = minimap.f()(&p);
-            gizmos.circle(p, Vec3::Z, 2., style::MINIMAP_ENEMY_COLOR);
+            let color = if enemy.is_mutant {
+                style::MINIMAP_MUTANT_COLOR
+            } else {
+                style::MINIMAP_ENEMY_COLOR
+            };
+            gizmos.circle(p, Vec3::Z, 2., color);
         }
     }
 }
@@ -246,6 +257,7 @@ pub fn bundle(position: Vec3, has_person: bool, is_mutant: bool, assets: &GameAs
             next_desired_position: 0.0,
             last_outside: 0.0,
             has_person,
+            is_mutant,
         },
         scroll: map::Scroll,
         confine: map::Confine,

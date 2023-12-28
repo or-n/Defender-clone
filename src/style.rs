@@ -23,6 +23,7 @@ pub const MINIMAP_COLOR: Color = Color::CYAN;
 pub const MINIMAP_VIEW_COLOR: Color = Color::WHITE;
 pub const MINIMAP_PLAYER_COLOR: Color = Color::WHITE;
 pub const MINIMAP_ENEMY_COLOR: Color = Color::GREEN;
+pub const MINIMAP_MUTANT_COLOR: Color = Color::RED;
 pub const MINIMAP_PERSON_COLOR: Color = Color::rgb(0.8, 0.8, 0.8);
 pub const MINIMAP_ZERO_MARK_COLOR: Color = Color::NONE;
 
