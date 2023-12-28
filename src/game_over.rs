@@ -1,4 +1,9 @@
-use crate::{assets::GameAssets, high_scores::*, score::Score, style, utils};
+use crate::{
+    assets::{audio, GameAssets},
+    high_scores::*,
+    score::Score,
+    style, utils,
+};
 use bevy::prelude::*;
 use utils::bevy::state::Simulation;
 
@@ -24,31 +29,23 @@ fn listen_for_game_over(
     mut commands: Commands,
     assets: Res<GameAssets>,
     time: Res<Time>,
+    score: Res<Score>,
+    mut high_scores: ResMut<HighScores>,
 ) {
     for _ in event.read() {
-        commands.spawn(AudioBundle {
-            source: assets.game_over_audio.clone(),
-            settings: PlaybackSettings::DESPAWN
-                .with_volume(utils::bevy::volume(style::VOICE_VOLUME)),
-        });
+        high_scores.save(score.value);
+        commands.spawn(audio(assets.game_over_audio.clone(), style::VOICE_VOLUME));
         commands.spawn(ChangeState {
             elapsed: time.elapsed_seconds(),
         });
     }
 }
 
-fn change_state(
-    mut commands: Commands,
-    query: Query<(Entity, &ChangeState)>,
-    time: Res<Time>,
-    score: Res<Score>,
-    mut high_scores: ResMut<HighScores>,
-) {
+fn change_state(mut commands: Commands, query: Query<(Entity, &ChangeState)>, time: Res<Time>) {
     if let Ok((entity, change_state)) = query.get_single() {
         if change_state.elapsed + 0.5 < time.elapsed_seconds() {
             commands.insert_resource(NextState(Some(Simulation::Paused)));
             commands.entity(entity).despawn();
-            high_scores.save(score.value);
         }
     }
 }
