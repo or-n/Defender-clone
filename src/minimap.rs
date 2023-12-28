@@ -40,7 +40,7 @@ impl Ready {
     }
 
     pub fn map_y(&self, y: f32) -> f32 {
-        y / self.window_size.y
+        y / (self.window_size.y * (1.0 - style::MINIMAP_SIZE.y))
     }
 
     pub fn normalize(&self, p: Vec3) -> Vec2 {
