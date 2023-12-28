@@ -8,13 +8,7 @@ use std::f32::consts::TAU;
 pub mod hit;
 pub mod projectile;
 pub mod state;
-
-pub fn size(window: &Window) -> Vec2 {
-    Vec2 {
-        x: window.width(),
-        y: window.height(),
-    }
-}
+pub mod window;
 
 pub fn grey(v: f32, alpha: f32) -> Color {
     Color::rgba(v, v, v, alpha)
@@ -46,7 +40,7 @@ pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
-        app.add_plugins((state::Plug, projectile::Plug))
+        app.add_plugins((state::Plug, projectile::Plug, window::Plug))
             .add_systems(PreUpdate, try_despawning)
             .add_systems(PostUpdate, (follow, try_despawning));
     }

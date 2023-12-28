@@ -1,7 +1,7 @@
-use bevy::{prelude::*, sprite::collide_aabb::collide, window::PrimaryWindow};
+use bevy::{prelude::*, sprite::collide_aabb::collide};
 
 use crate::{assets::GameAssets, map, style, utils};
-use utils::bevy::{hit::*, projectile::Projectile, state::Simulation};
+use utils::bevy::{hit::*, projectile::Projectile, state::Simulation, window};
 
 pub const SPEED: f32 = 2400.0 * 2.0;
 
@@ -74,14 +74,13 @@ impl Plugin for Plug {
 fn despawn_outside_window(
     query: Query<(Entity, &Transform), (With<Projectile>, Without<Camera>)>,
     camera_query: Query<&Transform, With<Camera>>,
-    window_query: Query<&Window, With<PrimaryWindow>>,
+    window_size: Res<window::Size>,
     mut commands: Commands,
 ) {
-    let window = window_query.single();
     for (entity, transform) in query.iter() {
         if let None = collide(
             camera_query.single().translation,
-            utils::bevy::size(window),
+            window_size.0,
             transform.translation,
             style::LASER_BOUND,
         ) {
@@ -94,7 +93,7 @@ fn detect_hits(
     query: Query<(Entity, &Transform, &Projectile)>,
     mut hittable_query: Query<(&Transform, &mut Hittable<Projectile>)>,
     camera_query: Query<&Transform, With<Camera>>,
-    window_query: Query<&Window, With<PrimaryWindow>>,
+    window_size: Res<window::Size>,
 ) {
     for (transform, mut hittable) in hittable_query.iter_mut() {
         for (entity, projectile_transform, projectile) in query.iter() {
@@ -107,7 +106,7 @@ fn detect_hits(
                 transform.translation,
                 hittable.hitbox,
                 camera_query.single().translation,
-                utils::bevy::size(window_query.single()),
+                window_size.0,
             )
             .is_some()
             {

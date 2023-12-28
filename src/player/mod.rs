@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
 
 use crate::{
     assets::{audio, GameAssets},
@@ -7,7 +6,7 @@ use crate::{
 };
 use game_over::GameOver;
 use projectile::Projectile;
-use utils::bevy::{hit::*, projectile, state::Simulation};
+use utils::bevy::{hit::*, projectile, state::Simulation, window};
 use utils::{range::Range, Side};
 
 pub mod input;
@@ -170,7 +169,7 @@ fn detect_hits(
     query: Query<(Entity, &Transform), With<Player>>,
     mut hittable_query: Query<(&Transform, &mut Hittable<Player>)>,
     camera_query: Query<&Transform, With<Camera>>,
-    window_query: Query<&Window, With<PrimaryWindow>>,
+    window_size: Res<window::Size>,
 ) {
     if let Ok((entity, player_transform)) = query.get_single() {
         for (transform, mut hittable) in hittable_query.iter_mut() {
@@ -180,7 +179,7 @@ fn detect_hits(
                 transform.translation,
                 hittable.hitbox,
                 camera_query.single().translation,
-                utils::bevy::size(window_query.single()),
+                window_size.0,
             )
             .is_some()
             {

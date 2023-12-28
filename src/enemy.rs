@@ -11,7 +11,7 @@ use game_over::GameOver;
 use player::Player;
 use projectile::Projectile;
 use score::Score;
-use utils::bevy::{hit::*, projectile, state::Simulation};
+use utils::bevy::{hit::*, projectile, state::Simulation, window};
 
 #[derive(Component)]
 pub struct Enemy {
@@ -115,7 +115,7 @@ fn shoot_player(
 
 fn movement(
     mut query: Query<(Entity, &mut Transform, &mut Enemy)>,
-    window_query: Query<&Window, With<PrimaryWindow>>,
+    window_size: Res<window::Size>,
     time: Res<Time>,
     map_scroll: Res<map::MapScroll>,
     mut person_query: Query<
@@ -126,7 +126,6 @@ fn movement(
     mut commands: Commands,
 ) {
     let elapsed = time.elapsed_seconds();
-    let window = window_query.single();
     for (entity, mut transform, mut enemy) in query.iter_mut() {
         if enemy.next_desired_position < elapsed {
             let mut person_data = vec![];
@@ -142,7 +141,7 @@ fn movement(
             let x = person_data
                 .iter_mut()
                 .min_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
-            let h = window.height() * (1.0 - style::MINIMAP_HEIGHT);
+            let h = window_size.0.y * (1.0 - style::MINIMAP_HEIGHT);
             let offset = style::BORDER_CONFINEMENT_OFFSET;
             let random = |position: Vec3, factor: f32| {
                 let dx = rand::random::<f32>() * 2.0 - 1.0;
@@ -175,7 +174,7 @@ fn movement(
             };
             enemy.desired_position = p;
             if enemy.has_person {
-                enemy.desired_position.y = h - offset;
+                enemy.desired_position.y = h;
             }
             enemy.next_desired_position = elapsed + 1.0;
         }
@@ -366,10 +365,13 @@ fn mutant_transform(
     query: Query<(Entity, &Transform, &Enemy)>,
     assets: Res<GameAssets>,
     mut commands: Commands,
+    window_size: Res<window::Size>,
 ) {
+    let h = window_size.0.y * (1.0 - style::MINIMAP_HEIGHT);
+    let offset = style::BORDER_CONFINEMENT_OFFSET;
     for (entity, transform, enemy) in query.iter() {
         let position = transform.translation;
-        if enemy.has_person && position.y > 500.0 {
+        if enemy.has_person && position.y > h - (offset + 1.0) {
             commands.entity(entity).despawn();
             let has_person = false;
             let is_mutant = true;
