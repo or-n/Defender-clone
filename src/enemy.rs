@@ -40,7 +40,7 @@ impl Plugin for Plug {
                     movement,
                     laser_hit,
                     player_hit,
-                    shoot_player.after(movement),
+                    (shoot_player, mutant_transform).after(movement),
                 )
                     .run_if(in_state(Simulation::Running)),
             )
@@ -143,10 +143,10 @@ fn movement(
                 .iter_mut()
                 .min_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
             let h = window.height() * (1.0 - style::MINIMAP_HEIGHT);
+            let offset = style::BORDER_CONFINEMENT_OFFSET;
             let random = |position: Vec3, factor: f32| {
                 let dx = rand::random::<f32>() * 2.0 - 1.0;
                 let mut dy = rand::random::<f32>() * 2.0 - 1.0;
-                let offset = style::BORDER_CONFINEMENT_OFFSET;
                 let mut p = position + Vec3::new(dx, dy, 0.0) * factor;
                 while p.y < offset || p.y > h - offset {
                     dy = rand::random::<f32>() * 2.0 - 1.0;
@@ -154,6 +154,7 @@ fn movement(
                 }
                 p
             };
+            let max_change = 400.0;
             let p = {
                 match x {
                     Some(data) => {
@@ -164,16 +165,18 @@ fn movement(
                                 person::CharacterState::CapturedBy(entity, person::ENEMY_OFFSET);
                             enemy.has_person = true;
                             commands.spawn(audio(assets.capture_audio.clone(), style::VOLUME));
-                            random(transform.translation, 400.0)
+                            random(transform.translation, max_change)
                         } else {
-                            let factor = if d < 400.0 { 0.0 } else { 400.0 };
-                            random(p, factor)
+                            random(p, if d < max_change { 0.0 } else { max_change })
                         }
                     }
-                    _ => random(transform.translation, 400.0),
+                    _ => random(transform.translation, max_change),
                 }
             };
             enemy.desired_position = p;
+            if enemy.has_person {
+                enemy.desired_position.y = h - offset;
+            }
             enemy.next_desired_position = elapsed + 1.0;
         }
         let mut start = transform.translation;
@@ -205,6 +208,44 @@ fn try_drawing_on_minimap(
             let p = minimap.f()(&p);
             gizmos.circle(p, Vec3::Z, 2., style::MINIMAP_ENEMY_COLOR);
         }
+    }
+}
+
+#[derive(Bundle)]
+pub struct Bundle {
+    sprite_bundle: SpriteBundle,
+    enemy: Enemy,
+    scroll: map::Scroll,
+    confine: map::Confine,
+    laser_hit: Hittable<Projectile>,
+}
+
+pub fn bundle(position: Vec3, has_person: bool, is_mutant: bool, assets: &GameAssets) -> Bundle {
+    let (scale, texture) = if is_mutant {
+        (style::MUTANT_SCALE, assets.mutant_texture.clone())
+    } else {
+        (style::ENEMY_SCALE, assets.enemy_texture.clone())
+    };
+    Bundle {
+        sprite_bundle: SpriteBundle {
+            transform: Transform {
+                translation: position,
+                scale: scale.extend(1.0),
+                ..default()
+            },
+            texture,
+            ..default()
+        },
+        enemy: Enemy {
+            desired_position: position,
+            next_shot: 0.0,
+            next_desired_position: 0.0,
+            last_outside: 0.0,
+            has_person,
+        },
+        scroll: map::Scroll,
+        confine: map::Confine,
+        laser_hit: Hittable::<Projectile>::new(style::ENEMY_BOUND),
     }
 }
 
@@ -249,34 +290,15 @@ fn spawn_enemies(
             x = map_scroll.update(x);
         }
         let y = 100.0 + rand::random::<f32>() * 400.0;
-        let desired_position = Vec3::new(x, y, 0.0);
+        let position = Vec3::new(x, y, 0.0);
         let has_person = false;
+        let is_mutant = false;
         let enemy_entity = commands
-            .spawn((
-                SpriteBundle {
-                    transform: Transform {
-                        translation: desired_position,
-                        scale: style::ENEMY_SCALE.extend(1.0),
-                        ..default()
-                    },
-                    texture: assets.enemy_texture.clone(),
-                    ..default()
-                },
-                Enemy {
-                    desired_position,
-                    next_shot: 0.0,
-                    next_desired_position: 0.0,
-                    last_outside: 0.0,
-                    has_person,
-                },
-                map::Scroll,
-                map::Confine,
-                Hittable::<Projectile>::new(style::ENEMY_BOUND),
-            ))
+            .spawn(bundle(position, has_person, is_mutant, &assets))
             .id();
         if has_person {
             commands.spawn(person::bundle(
-                desired_position.xy(),
+                position.xy(),
                 person::CharacterState::CapturedBy(enemy_entity, person::ENEMY_OFFSET),
                 &assets,
             ));
@@ -336,6 +358,22 @@ fn player_hit(
                 game_over_event.send(GameOver);
                 break;
             }
+        }
+    }
+}
+
+fn mutant_transform(
+    query: Query<(Entity, &Transform, &Enemy)>,
+    assets: Res<GameAssets>,
+    mut commands: Commands,
+) {
+    for (entity, transform, enemy) in query.iter() {
+        let position = transform.translation;
+        if enemy.has_person && position.y > 500.0 {
+            commands.entity(entity).despawn();
+            let has_person = false;
+            let is_mutant = true;
+            commands.spawn(bundle(position, has_person, is_mutant, &assets));
         }
     }
 }
