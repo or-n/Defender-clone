@@ -20,11 +20,12 @@ fn main() {
     App::new()
         .add_event::<minimap::Ready>()
         .add_event::<explosion::At>()
+        .insert_resource(bevy::asset::AssetMetaCheck::Never)
         .add_plugins((
             DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
                     title: "Defender".into(),
-                    mode: bevy::window::WindowMode::Fullscreen,
+                    mode: bevy::window::WindowMode::BorderlessFullscreen,
                     fit_canvas_to_parent: true,
                     prevent_default_event_handling: false,
                     ..default()
