@@ -1,6 +1,7 @@
 use crate::{
     assets::{audio, GameAssets},
-    laser, style, utils,
+    laser::{self, MyTexture, MyTransform},
+    style, utils,
 };
 use bevy::prelude::*;
 
@@ -14,6 +15,22 @@ pub struct Plug;
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
         app.add_systems(Update, try_spawning);
+    }
+}
+
+#[derive(Component)]
+pub struct Explosion;
+
+impl MyTransform for Explosion {
+    fn transform(angle: f32) -> Transform {
+        Transform::from_rotation(utils::bevy::angle(angle + 0.25))
+            .with_scale((style::ORB_SCALE * 0.5).extend(1.0))
+    }
+}
+
+impl MyTexture for Explosion {
+    fn texture(assets: &GameAssets) -> Handle<Image> {
+        assets.laser_texture.clone()
     }
 }
 
@@ -41,8 +58,7 @@ fn try_spawning(
                     angle,
                     speed,
                     utils::bevy::bloom_hue(hue),
-                    false,
-                    false,
+                    Explosion,
                 ),
                 utils::bevy::DespawnTime {
                     elapsed_seconds: time.elapsed_seconds() + 0.5,

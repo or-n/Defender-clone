@@ -48,21 +48,21 @@ pub fn box_intersection(a: Vec2, a_bound: Vec2, b: Vec2, b_bound: Vec2) -> Optio
 }
 
 pub trait Bound {
-    fn bound(&self) -> Vec2;
+    fn bound() -> Vec2;
 }
 
-pub fn detect_hits<T: Bound + std::marker::Sync + std::marker::Send + bevy::prelude::Component>(
-    query: Query<(Entity, &Transform, &T)>,
+pub fn detect_hits<T: Bound + Sync + Send + Component>(
+    query: Query<(Entity, &Transform), With<T>>,
     mut hittable_query: Query<(&Transform, &mut Hittable<T>)>,
     camera_query: Query<&Transform, With<Camera>>,
     window_size: Res<window::Size>,
 ) {
     for (hittable_transform, mut hittable) in hittable_query.iter_mut() {
         hittable.hit_entity = None;
-        for (entity, transform, data) in query.iter() {
+        for (entity, transform) in query.iter() {
             if hit(
                 transform.translation,
-                data.bound(),
+                T::bound(),
                 hittable_transform.translation,
                 hittable.hitbox,
                 camera_query.single().translation,

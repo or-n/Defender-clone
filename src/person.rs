@@ -1,13 +1,13 @@
 use bevy::prelude::*;
 
-use crate::assets::{audio, GameAssets};
-use crate::minimap;
-use crate::score::Score;
-use crate::style;
-use crate::utils::bevy::hit::*;
-use crate::utils::bevy::projectile::Projectile;
-use crate::utils::bevy::state::Simulation;
-use crate::{map, player::*};
+use crate::{
+    assets::{audio, GameAssets},
+    laser, map, minimap,
+    player::*,
+    score::Score,
+    style,
+    utils::{bevy::hit::*, bevy::state::Simulation},
+};
 
 #[derive(Component)]
 pub struct Person;
@@ -29,7 +29,7 @@ pub struct Bundle {
     state: CharacterState,
     sprite_sheet: SpriteSheetBundle,
     person: Person,
-    laser_hit: Hittable<Projectile>,
+    laser_hit: Hittable<laser::Laser>,
     player_hit: Hittable<Player>,
     scroll: map::Scroll,
 }
@@ -76,8 +76,8 @@ pub fn bundle(position: Vec2, state: CharacterState, assets: &GameAssets) -> Bun
             ..default()
         },
         person: Person,
-        laser_hit: Hittable::<Projectile>::new(style::PERSON_BOUND),
-        player_hit: Hittable::<Player>::new(style::PERSON_BOUND),
+        laser_hit: Hittable::new(style::PERSON_BOUND),
+        player_hit: Hittable::new(style::PERSON_BOUND),
         scroll: map::Scroll,
     }
 }
@@ -126,7 +126,10 @@ pub fn update(
     }
 }
 
-fn laser_hit(query: Query<(Entity, &Hittable<Projectile>), With<Person>>, mut commands: Commands) {
+fn laser_hit(
+    query: Query<(Entity, &Hittable<laser::Laser>), With<Person>>,
+    mut commands: Commands,
+) {
     for (person_entity, hittable) in query.iter() {
         if let Some(_) = hittable.hit_entity {
             commands.entity(person_entity).despawn();

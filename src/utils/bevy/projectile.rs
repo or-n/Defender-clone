@@ -4,8 +4,6 @@ use bevy::prelude::*;
 #[derive(Component)]
 pub struct Projectile {
     pub velocity: Vec3,
-    pub bound: Vec2,
-    pub is_damaging: bool,
 }
 
 fn movement(mut query: Query<(&mut Transform, &Projectile)>, time: Res<Time>) {

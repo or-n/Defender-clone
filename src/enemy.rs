@@ -9,9 +9,8 @@ use crate::{
 };
 use game_over::GameOver;
 use player::Player;
-use projectile::Projectile;
 use score::Score;
-use utils::bevy::{hit::*, projectile, state::Simulation, window};
+use utils::bevy::{hit::*, state::Simulation, window};
 
 #[derive(Component)]
 pub struct Enemy {
@@ -106,8 +105,7 @@ fn shoot_player(
                         angle,
                         ORB_SPEED,
                         orb_color,
-                        false,
-                        true,
+                        laser::Orb,
                     ));
                     commands.spawn(audio(assets.laser_audio.clone(), style::VOLUME));
                 }
@@ -223,7 +221,7 @@ pub struct Bundle {
     enemy: Enemy,
     scroll: map::Scroll,
     confine: map::Confine,
-    laser_hit: Hittable<Projectile>,
+    laser_hit: Hittable<laser::Laser>,
     player_hit: Hittable<Player>,
 }
 
@@ -261,8 +259,8 @@ pub fn bundle(position: Vec3, has_person: bool, is_mutant: bool, assets: &GameAs
         },
         scroll: map::Scroll,
         confine: map::Confine,
-        laser_hit: Hittable::<Projectile>::new(bound),
-        player_hit: Hittable::<Player>::new(bound),
+        laser_hit: Hittable::new(bound),
+        player_hit: Hittable::new(bound),
     }
 }
 
@@ -324,7 +322,7 @@ fn spawn_enemies(
 }
 
 fn laser_hit(
-    query: Query<(Entity, &Transform, &Hittable<Projectile>), With<Enemy>>,
+    query: Query<(Entity, &Transform, &Hittable<laser::Laser>), With<Enemy>>,
     mut commands: Commands,
     mut score: ResMut<Score>,
     mut explosion_event: EventWriter<explosion::At>,

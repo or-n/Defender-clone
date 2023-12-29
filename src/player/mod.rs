@@ -5,8 +5,7 @@ use crate::{
     camera, explosion, game_over, laser, map, minimap, style, utils,
 };
 use game_over::GameOver;
-use projectile::Projectile;
-use utils::bevy::{hit::*, projectile, state::Simulation};
+use utils::bevy::{hit::*, state::Simulation};
 use utils::{range::Range, Side};
 
 pub mod input;
@@ -81,7 +80,7 @@ pub fn spawn(
         },
         thrust::ThrustBundle::new(assets),
         map::Confine,
-        Hittable::<Projectile>::new(style::PLAYER_BOUND),
+        Hittable::<crate::laser::Orb>::new(style::PLAYER_BOUND),
     ));
 }
 
@@ -141,7 +140,12 @@ fn try_shooting(
             let speed = laser::SPEED;
             let color = utils::bevy::bloom_hue((elapsed * 120.0) % 360.0);
             commands.spawn(laser::Bundle::new(
-                &assets, position, angle, speed, color, true, true,
+                &assets,
+                position,
+                angle,
+                speed,
+                color,
+                laser::Laser,
             ));
             player.next_shot_time = elapsed + SHOOT_DELAY;
         }
@@ -149,7 +153,7 @@ fn try_shooting(
 }
 
 fn laser_hit(
-    query: Query<(Entity, &Transform, &Hittable<Projectile>), With<Player>>,
+    query: Query<(Entity, &Transform, &Hittable<crate::laser::Orb>), With<Player>>,
     mut commands: Commands,
     mut explosion_event: EventWriter<explosion::At>,
     mut game_over_event: EventWriter<GameOver>,
@@ -166,7 +170,7 @@ fn laser_hit(
 }
 
 impl Bound for Player {
-    fn bound(&self) -> Vec2 {
+    fn bound() -> Vec2 {
         style::PLAYER_BOUND
     }
 }

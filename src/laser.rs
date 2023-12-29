@@ -6,56 +6,73 @@ use utils::bevy::{hit::*, projectile::Projectile, state::Simulation, window};
 pub const SPEED: f32 = 2400.0 * 2.0;
 
 #[derive(Bundle)]
-pub struct Bundle {
+pub struct Bundle<T: Send + Sync + Component> {
     projectile: Projectile,
     sprite_bundle: SpriteBundle,
     scroll: map::Scroll,
+    variant: T,
 }
 
-impl Bundle {
+#[derive(Component)]
+pub struct Laser;
+
+#[derive(Component)]
+pub struct Orb;
+
+pub trait MyTransform {
+    fn transform(angle: f32) -> Transform;
+}
+
+pub trait MyTexture {
+    fn texture(assets: &GameAssets) -> Handle<Image>;
+}
+
+impl MyTransform for Laser {
+    fn transform(angle: f32) -> Transform {
+        Transform::from_rotation(utils::bevy::angle(angle + 0.25))
+            .with_scale(style::LASER_SCALE.extend(1.0))
+    }
+}
+
+impl MyTexture for Laser {
+    fn texture(assets: &GameAssets) -> Handle<Image> {
+        assets.laser_texture.clone()
+    }
+}
+
+impl MyTransform for Orb {
+    fn transform(angle: f32) -> Transform {
+        Transform::from_rotation(utils::bevy::angle(angle)).with_scale(style::ORB_SCALE.extend(1.0))
+    }
+}
+
+impl MyTexture for Orb {
+    fn texture(assets: &GameAssets) -> Handle<Image> {
+        assets.orb_texture.clone()
+    }
+}
+
+impl<T: Component + MyTexture + MyTransform> Bundle<T> {
     pub fn new(
-        assets: &Res<GameAssets>,
+        assets: &GameAssets,
         translation: Vec3,
         angle: f32,
         speed: f32,
         color: Color,
-        is_laser: bool,
-        is_damaging: bool,
-    ) -> Bundle {
-        let (bound, texture, rotation, scale) = if is_laser {
-            (
-                style::LASER_BOUND,
-                assets.laser_texture.clone(),
-                angle + 0.25,
-                style::LASER_SCALE,
-            )
-        } else {
-            (
-                style::ORB_BOUND,
-                assets.orb_texture.clone(),
-                angle,
-                style::ORB_SCALE,
-            )
-        };
-        let transform = Transform {
-            translation,
-            rotation: utils::bevy::angle(rotation),
-            scale: (scale * if is_damaging { 1.0 } else { 0.2 }).extend(1.0),
-            ..default()
-        };
+        variant: T,
+    ) -> Self {
         Bundle {
             projectile: Projectile {
                 velocity: utils::bevy::clock(angle).extend(0.0) * speed,
-                bound,
-                is_damaging,
             },
             sprite_bundle: SpriteBundle {
-                transform,
-                texture,
+                transform: T::transform(angle).with_translation(translation),
+                texture: T::texture(assets),
                 sprite: Sprite { color, ..default() },
                 ..default()
             },
             scroll: map::Scroll,
+            variant,
         }
     }
 }
@@ -66,7 +83,11 @@ impl Plugin for Plug {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (despawn_outside_window, detect_hits::<Projectile>)
+            (
+                despawn_outside_window,
+                detect_hits::<Laser>,
+                detect_hits::<Orb>,
+            )
                 .run_if(in_state(Simulation::Running)),
         );
     }
@@ -90,8 +111,14 @@ fn despawn_outside_window(
     }
 }
 
-impl Bound for Projectile {
-    fn bound(&self) -> Vec2 {
-        self.bound
+impl Bound for Laser {
+    fn bound() -> Vec2 {
+        style::LASER_BOUND
+    }
+}
+
+impl Bound for Orb {
+    fn bound() -> Vec2 {
+        style::ORB_BOUND
     }
 }
