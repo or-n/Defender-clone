@@ -54,3 +54,11 @@ pub fn audio(source: Handle<AudioSource>, volume: f32) -> AudioBundle {
         settings: PlaybackSettings::DESPAWN.with_volume(utils::bevy::volume(volume)),
     }
 }
+
+pub trait MyTransform {
+    fn transform(angle: f32) -> Transform;
+}
+
+pub trait MyTexture {
+    fn texture(assets: &GameAssets) -> Handle<Image>;
+}

@@ -1,9 +1,13 @@
 use bevy::{prelude::*, sprite::collide_aabb::collide};
 
-use crate::{assets::GameAssets, map, style, utils};
+use crate::{
+    assets::{GameAssets, MyTexture, MyTransform},
+    map, style, utils,
+};
 use utils::bevy::{hit::*, projectile::Projectile, state::Simulation, window};
 
-pub const SPEED: f32 = 2400.0 * 2.0;
+pub mod laser;
+pub mod orb;
 
 #[derive(Bundle)]
 pub struct Bundle<T: Send + Sync + Component> {
@@ -11,45 +15,6 @@ pub struct Bundle<T: Send + Sync + Component> {
     sprite_bundle: SpriteBundle,
     scroll: map::Scroll,
     variant: T,
-}
-
-#[derive(Component)]
-pub struct Laser;
-
-#[derive(Component)]
-pub struct Orb;
-
-pub trait MyTransform {
-    fn transform(angle: f32) -> Transform;
-}
-
-pub trait MyTexture {
-    fn texture(assets: &GameAssets) -> Handle<Image>;
-}
-
-impl MyTransform for Laser {
-    fn transform(angle: f32) -> Transform {
-        Transform::from_rotation(utils::bevy::angle(angle + 0.25))
-            .with_scale(style::LASER_SCALE.extend(1.0))
-    }
-}
-
-impl MyTexture for Laser {
-    fn texture(assets: &GameAssets) -> Handle<Image> {
-        assets.laser_texture.clone()
-    }
-}
-
-impl MyTransform for Orb {
-    fn transform(angle: f32) -> Transform {
-        Transform::from_rotation(utils::bevy::angle(angle)).with_scale(style::ORB_SCALE.extend(1.0))
-    }
-}
-
-impl MyTexture for Orb {
-    fn texture(assets: &GameAssets) -> Handle<Image> {
-        assets.orb_texture.clone()
-    }
 }
 
 impl<T: Component + MyTexture + MyTransform> Bundle<T> {
@@ -85,8 +50,8 @@ impl Plugin for Plug {
             Update,
             (
                 despawn_outside_window,
-                detect_hits::<Laser>,
-                detect_hits::<Orb>,
+                detect_hits::<laser::Laser>,
+                detect_hits::<orb::Orb>,
             )
                 .run_if(in_state(Simulation::Running)),
         );
@@ -108,17 +73,5 @@ fn despawn_outside_window(
         ) {
             commands.entity(entity).despawn();
         }
-    }
-}
-
-impl Bound for Laser {
-    fn bound() -> Vec2 {
-        style::LASER_BOUND
-    }
-}
-
-impl Bound for Orb {
-    fn bound() -> Vec2 {
-        style::ORB_BOUND
     }
 }

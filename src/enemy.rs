@@ -2,10 +2,10 @@ use bevy::prelude::*;
 
 use crate::{
     assets::{audio, GameAssets},
-    explosion, game_over, laser, map, minimap,
+    explosion, game_over, map, minimap,
     person::{self, Person},
     player::{self, HORIZONTAL_SPEED},
-    score, style, utils,
+    projectile, score, style, utils,
 };
 use game_over::GameOver;
 use player::Player;
@@ -60,8 +60,6 @@ pub fn visible(x: f32, camera_x: f32, window_width: f32) -> bool {
     x >= -half_screen_x && x <= half_screen_x
 }
 
-const ORB_SPEED: f32 = 300.0;
-
 fn shoot_player(
     mut query: Query<(&Transform, &mut Enemy)>,
     player_query: Query<(&Transform, &Player)>,
@@ -82,7 +80,7 @@ fn shoot_player(
             let dir = delta.normalize();
             let d = player_position + Vec3::X * player.horizontal_speed * d
                 - position
-                - dir * d * ORB_SPEED;
+                - dir * d * projectile::orb::SPEED;
             let dir = Vec2::new(d.x, d.y).normalize();
             let mut angle = Vec2::X.angle_between(dir) / 3.14 * 0.5;
             if angle < 0.0 {
@@ -99,13 +97,13 @@ fn shoot_player(
             let v = angle.min(1.0 - angle).min((angle - 0.5).abs()) * 4.0;
             if enemy.next_shot < elapsed && enemy.last_outside + 0.5 < elapsed {
                 if rand::random::<f32>() < v.powf(0.25) {
-                    commands.spawn(laser::Bundle::new(
+                    commands.spawn(projectile::Bundle::new(
                         &assets,
                         position + dir.extend(0.0) * 50.0,
                         angle,
-                        ORB_SPEED,
+                        projectile::orb::SPEED,
                         orb_color,
-                        laser::Orb,
+                        projectile::orb::Orb,
                     ));
                     commands.spawn(audio(assets.laser_audio.clone(), style::VOLUME));
                 }
@@ -221,7 +219,7 @@ pub struct Bundle {
     enemy: Enemy,
     scroll: map::Scroll,
     confine: map::Confine,
-    laser_hit: Hittable<laser::Laser>,
+    laser_hit: Hittable<projectile::laser::Laser>,
     player_hit: Hittable<Player>,
 }
 
@@ -322,7 +320,7 @@ fn spawn_enemies(
 }
 
 fn laser_hit(
-    query: Query<(Entity, &Transform, &Hittable<laser::Laser>), With<Enemy>>,
+    query: Query<(Entity, &Transform, &Hittable<projectile::laser::Laser>), With<Enemy>>,
     mut commands: Commands,
     mut score: ResMut<Score>,
     mut explosion_event: EventWriter<explosion::At>,

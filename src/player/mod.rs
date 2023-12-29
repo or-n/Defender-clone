@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
     assets::{audio, GameAssets},
-    camera, explosion, game_over, laser, map, minimap, style, utils,
+    camera, explosion, game_over, map, minimap, projectile, style, utils,
 };
 use game_over::GameOver;
 use utils::bevy::{hit::*, state::Simulation};
@@ -80,7 +80,7 @@ pub fn spawn(
         },
         thrust::ThrustBundle::new(assets),
         map::Confine,
-        Hittable::<crate::laser::Orb>::new(style::PLAYER_BOUND),
+        Hittable::<projectile::orb::Orb>::new(style::PLAYER_BOUND),
     ));
 }
 
@@ -137,15 +137,15 @@ fn try_shooting(
             let direction = Vec3::X * player.facing.sign();
             let off = style::PLAYER_FRONT_OFFSET + style::LASER_BOUND.x * 0.5;
             let position = transform.translation + off * direction;
-            let speed = laser::SPEED;
+            let speed = projectile::laser::SPEED;
             let color = utils::bevy::bloom_hue((elapsed * 120.0) % 360.0);
-            commands.spawn(laser::Bundle::new(
+            commands.spawn(projectile::Bundle::new(
                 &assets,
                 position,
                 angle,
                 speed,
                 color,
-                laser::Laser,
+                projectile::laser::Laser,
             ));
             player.next_shot_time = elapsed + SHOOT_DELAY;
         }
@@ -153,7 +153,7 @@ fn try_shooting(
 }
 
 fn laser_hit(
-    query: Query<(Entity, &Transform, &Hittable<crate::laser::Orb>), With<Player>>,
+    query: Query<(Entity, &Transform, &Hittable<projectile::orb::Orb>), With<Player>>,
     mut commands: Commands,
     mut explosion_event: EventWriter<explosion::At>,
     mut game_over_event: EventWriter<GameOver>,

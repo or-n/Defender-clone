@@ -1,7 +1,6 @@
 use crate::{
-    assets::{audio, GameAssets},
-    laser::{self, MyTexture, MyTransform},
-    style, utils,
+    assets::{audio, GameAssets, MyTexture, MyTransform},
+    projectile, style, utils,
 };
 use bevy::prelude::*;
 
@@ -52,7 +51,7 @@ fn try_spawning(
             let clock = utils::bevy::clock(angle).extend(0.0);
             let hue = rand::random::<f32>() * 360.0;
             commands.spawn((
-                laser::Bundle::new(
+                projectile::Bundle::new(
                     &assets,
                     explosion.position + clock * style::ORB_BOUND.x * 0.5,
                     angle,

@@ -6,12 +6,12 @@ mod enemy;
 mod explosion;
 mod game_over;
 mod high_scores;
-mod laser;
 mod map;
 mod menu;
 mod minimap;
 mod person;
 mod player;
+mod projectile;
 mod score;
 mod style;
 mod utils;
@@ -37,7 +37,7 @@ fn main() {
             player::Plug,
             enemy::Plug,
             person::Plug,
-            laser::Plug,
+            projectile::Plug,
             explosion::Plug,
             game_over::Plug,
             high_scores::Plug,

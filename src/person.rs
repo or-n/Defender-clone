@@ -2,8 +2,9 @@ use bevy::prelude::*;
 
 use crate::{
     assets::{audio, GameAssets},
-    laser, map, minimap,
+    map, minimap,
     player::*,
+    projectile,
     score::Score,
     style,
     utils::{bevy::hit::*, bevy::state::Simulation},
@@ -29,7 +30,7 @@ pub struct Bundle {
     state: CharacterState,
     sprite_sheet: SpriteSheetBundle,
     person: Person,
-    laser_hit: Hittable<laser::Laser>,
+    laser_hit: Hittable<projectile::laser::Laser>,
     player_hit: Hittable<Player>,
     scroll: map::Scroll,
 }
@@ -127,7 +128,7 @@ pub fn update(
 }
 
 fn laser_hit(
-    query: Query<(Entity, &Hittable<laser::Laser>), With<Person>>,
+    query: Query<(Entity, &Hittable<projectile::laser::Laser>), With<Person>>,
     mut commands: Commands,
 ) {
     for (person_entity, hittable) in query.iter() {
