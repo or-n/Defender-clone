@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    assets::{audio, GameAssets},
+    assets::{audio, GameAssets, MyTexture, MyTransform},
     explosion, game_over, map, minimap,
     person::{self, Person},
     player::{self, HORIZONTAL_SPEED},
@@ -12,6 +12,9 @@ use player::Player;
 use score::Score;
 use utils::bevy::{hit::*, state::Simulation, window};
 
+pub mod lander;
+pub mod mutant;
+
 #[derive(Component)]
 pub struct Enemy {
     desired_position: Vec3,
@@ -19,7 +22,17 @@ pub struct Enemy {
     next_desired_position: f32,
     last_outside: f32,
     has_person: bool,
-    is_mutant: bool,
+}
+
+pub trait Variant {
+    fn data() -> VariantData;
+}
+
+#[derive(Component)]
+pub struct VariantData {
+    orb_color: Color,
+    shot_delay: f32,
+    minimap_color: Color,
 }
 
 #[derive(Resource)]
@@ -61,7 +74,7 @@ pub fn visible(x: f32, camera_x: f32, window_width: f32) -> bool {
 }
 
 fn shoot_player(
-    mut query: Query<(&Transform, &mut Enemy)>,
+    mut query: Query<(&Transform, &VariantData, &mut Enemy)>,
     player_query: Query<(&Transform, &Player)>,
     window_size: Res<window::Size>,
     camera_query: Query<&Transform, With<Camera>>,
@@ -73,7 +86,7 @@ fn shoot_player(
     let camera_position = camera_query.single().translation;
     if let Ok((player_transform, player)) = player_query.get_single() {
         let player_position = player_transform.translation;
-        for (transform, mut enemy) in query.iter_mut() {
+        for (transform, variant, mut enemy) in query.iter_mut() {
             let position = transform.translation;
             let delta = player_position - position;
             let d = delta.length() / (2.5 * HORIZONTAL_SPEED);
@@ -89,11 +102,6 @@ fn shoot_player(
             if !visible(position.x, camera_position.x, window_size.0.x) {
                 enemy.last_outside = elapsed;
             }
-            let (orb_color, shot_delay) = if enemy.is_mutant {
-                (utils::bevy::bloom_hue(120.0), 0.25)
-            } else {
-                (utils::bevy::bloom_hue(360.0), 1.0)
-            };
             let v = angle.min(1.0 - angle).min((angle - 0.5).abs()) * 4.0;
             if enemy.next_shot < elapsed && enemy.last_outside + 0.5 < elapsed {
                 if rand::random::<f32>() < v.powf(0.25) {
@@ -102,12 +110,12 @@ fn shoot_player(
                         position + dir.extend(0.0) * 50.0,
                         angle,
                         projectile::orb::SPEED,
-                        orb_color,
+                        variant.orb_color,
                         projectile::orb::Orb,
                     ));
                     commands.spawn(audio(assets.laser_audio.clone(), style::VOLUME));
                 }
-                enemy.next_shot = elapsed + shot_delay;
+                enemy.next_shot = elapsed + variant.shot_delay;
             }
         }
     }
@@ -152,25 +160,21 @@ fn movement(
                 position + Vec3::new(dx, dy, 0.0)
             };
             let max_change = 400.0;
-            let p = {
-                match x {
-                    Some(data) => {
-                        let p = data.1;
-                        let d = (p - transform.translation).length();
-                        if d < 10.0 {
-                            *data.2 =
-                                person::CharacterState::CapturedBy(entity, person::ENEMY_OFFSET);
-                            enemy.has_person = true;
-                            commands.spawn(audio(assets.capture_audio.clone(), style::VOLUME));
-                            random(transform.translation, max_change)
-                        } else {
-                            random(p, if d < max_change { 0.0 } else { max_change })
-                        }
+            enemy.desired_position = match x {
+                Some(data) => {
+                    let p = data.1;
+                    let d = (p - transform.translation).length();
+                    if d < 10.0 {
+                        *data.2 = person::CharacterState::CapturedBy(entity, person::ENEMY_OFFSET);
+                        enemy.has_person = true;
+                        commands.spawn(audio(assets.capture_audio.clone(), style::VOLUME));
+                        random(transform.translation, max_change)
+                    } else {
+                        random(p, if d < max_change { 0.0 } else { max_change })
                     }
-                    _ => random(transform.translation, max_change),
                 }
+                _ => random(transform.translation, max_change),
             };
-            enemy.desired_position = p;
             if enemy.has_person {
                 enemy.desired_position.y = h;
             }
@@ -196,69 +200,55 @@ fn movement(
 
 fn try_drawing_on_minimap(
     mut gizmos: Gizmos,
-    enemy_query: Query<(&Transform, &Enemy)>,
+    enemy_query: Query<(&Transform, &VariantData)>,
     mut minimap_event: EventReader<minimap::Ready>,
 ) {
     for minimap in minimap_event.read() {
-        for (enemy_transform, enemy) in enemy_query.iter() {
+        for (enemy_transform, variant) in enemy_query.iter() {
             let p = minimap.normalize(enemy_transform.translation);
             let p = minimap.f()(&p);
-            let color = if enemy.is_mutant {
-                style::MINIMAP_MUTANT_COLOR
-            } else {
-                style::MINIMAP_ENEMY_COLOR
-            };
-            gizmos.circle(p, Vec3::Z, 2., color);
+            gizmos.circle(p, Vec3::Z, 2., variant.minimap_color);
         }
     }
 }
 
 #[derive(Bundle)]
-pub struct Bundle {
+pub struct Bundle<T: Send + Sync + Component> {
     sprite_bundle: SpriteBundle,
     enemy: Enemy,
     scroll: map::Scroll,
     confine: map::Confine,
     laser_hit: Hittable<projectile::laser::Laser>,
     player_hit: Hittable<Player>,
+    variant: T,
+    variant_data: VariantData,
 }
 
-pub fn bundle(position: Vec3, has_person: bool, is_mutant: bool, assets: &GameAssets) -> Bundle {
-    let (scale, texture, bound) = if is_mutant {
-        (
-            style::MUTANT_SCALE,
-            assets.mutant_texture.clone(),
-            style::MUTANT_BOUND,
-        )
-    } else {
-        (
-            style::ENEMY_SCALE,
-            assets.enemy_texture.clone(),
-            style::ENEMY_BOUND,
-        )
-    };
+pub fn bundle<T: Component + MyTexture + MyTransform + Bound + Variant>(
+    translation: Vec3,
+    has_person: bool,
+    variant: T,
+    assets: &GameAssets,
+) -> Bundle<T> {
     Bundle {
         sprite_bundle: SpriteBundle {
-            transform: Transform {
-                translation: position,
-                scale: scale.extend(1.0),
-                ..default()
-            },
-            texture,
+            transform: T::transform(0.0).with_translation(translation),
+            texture: T::texture(assets),
             ..default()
         },
         enemy: Enemy {
-            desired_position: position,
+            desired_position: translation,
             next_shot: 0.0,
             next_desired_position: 0.0,
             last_outside: 0.0,
             has_person,
-            is_mutant,
         },
         scroll: map::Scroll,
         confine: map::Confine,
-        laser_hit: Hittable::new(bound),
-        player_hit: Hittable::new(bound),
+        laser_hit: Hittable::new(T::bound()),
+        player_hit: Hittable::new(T::bound()),
+        variant,
+        variant_data: T::data(),
     }
 }
 
@@ -304,9 +294,8 @@ fn spawn_enemies(
         let y = 100.0 + rand::random::<f32>() * 400.0;
         let position = Vec3::new(x, y, 0.0);
         let has_person = false;
-        let is_mutant = false;
         let enemy_entity = commands
-            .spawn(bundle(position, has_person, is_mutant, &assets))
+            .spawn(bundle(position, has_person, lander::Lander, &assets))
             .id();
         if has_person {
             commands.spawn(person::bundle(
@@ -378,8 +367,7 @@ fn mutant_transform(
         if enemy.has_person && position.y > h - (offset + 1.0) {
             commands.entity(entity).despawn();
             let has_person = false;
-            let is_mutant = true;
-            commands.spawn(bundle(position, has_person, is_mutant, &assets));
+            commands.spawn(bundle(position, has_person, mutant::Mutant, &assets));
         }
     }
 }
