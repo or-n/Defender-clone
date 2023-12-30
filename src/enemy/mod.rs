@@ -21,7 +21,7 @@ pub struct Enemy {
     next_shot: f32,
     next_desired_position: f32,
     last_outside: f32,
-    has_person: bool,
+    pub person: Option<Entity>,
 }
 
 pub trait Variant {
@@ -127,7 +127,7 @@ fn movement(
     time: Res<Time>,
     map_scroll: Res<map::MapScroll>,
     mut person_query: Query<
-        (&Transform, &mut person::CharacterState),
+        (Entity, &Transform, &mut person::CharacterState),
         (With<Person>, Without<Enemy>),
     >,
     assets: Res<GameAssets>,
@@ -137,12 +137,12 @@ fn movement(
     for (entity, mut transform, mut enemy) in query.iter_mut() {
         if enemy.next_desired_position < elapsed {
             let mut person_data = vec![];
-            if !enemy.has_person {
-                for (person_transform, person_state) in person_query.iter_mut() {
+            if enemy.person.is_none() {
+                for (person_entity, person_transform, person_state) in person_query.iter_mut() {
                     if matches!(*person_state, person::CharacterState::Grounded) {
                         let p = person_transform.translation - person::ENEMY_OFFSET.extend(0.0);
                         let d = p - transform.translation;
-                        person_data.push((d.length(), p, person_state));
+                        person_data.push((d.length(), p, person_state, person_entity));
                     }
                 }
             }
@@ -166,7 +166,7 @@ fn movement(
                     let d = (p - transform.translation).length();
                     if d < 10.0 {
                         *data.2 = person::CharacterState::CapturedBy(entity, person::ENEMY_OFFSET);
-                        enemy.has_person = true;
+                        enemy.person = Some(data.3);
                         commands.spawn(audio(assets.capture_audio.clone(), style::VOLUME));
                         random(transform.translation, max_change)
                     } else {
@@ -175,7 +175,7 @@ fn movement(
                 }
                 _ => random(transform.translation, max_change),
             };
-            if enemy.has_person {
+            if enemy.person.is_some() {
                 enemy.desired_position.y = h;
             }
             enemy.next_desired_position = elapsed + 1.0;
@@ -226,7 +226,7 @@ pub struct Bundle<T: Send + Sync + Component> {
 
 pub fn bundle<T: Component + MyTexture + MyTransform + Bound + Variant>(
     translation: Vec3,
-    has_person: bool,
+    person: Option<Entity>,
     variant: T,
     assets: &GameAssets,
 ) -> Bundle<T> {
@@ -241,7 +241,7 @@ pub fn bundle<T: Component + MyTexture + MyTransform + Bound + Variant>(
             next_shot: 0.0,
             next_desired_position: 0.0,
             last_outside: 0.0,
-            has_person,
+            person,
         },
         scroll: map::Scroll,
         confine: map::Confine,
@@ -293,17 +293,7 @@ fn spawn_enemies(
         }
         let y = 100.0 + rand::random::<f32>() * 400.0;
         let position = Vec3::new(x, y, 0.0);
-        let has_person = false;
-        let enemy_entity = commands
-            .spawn(bundle(position, has_person, lander::Lander, &assets))
-            .id();
-        if has_person {
-            commands.spawn(person::bundle(
-                position.xy(),
-                person::CharacterState::CapturedBy(enemy_entity, person::ENEMY_OFFSET),
-                &assets,
-            ));
-        }
+        commands.spawn(bundle(position, None, lander::Lander, &assets));
         enemies.count += 1;
     }
 }
@@ -364,10 +354,12 @@ fn mutant_transform(
     let offset = style::BORDER_CONFINEMENT_OFFSET;
     for (entity, transform, enemy) in query.iter() {
         let position = transform.translation;
-        if enemy.has_person && position.y > h - (offset + 1.0) {
-            commands.entity(entity).despawn();
-            let has_person = false;
-            commands.spawn(bundle(position, has_person, mutant::Mutant, &assets));
+        if let Some(person_entity) = enemy.person {
+            if position.y > h - (offset + 1.0) {
+                commands.entity(entity).despawn();
+                commands.entity(person_entity).despawn();
+                commands.spawn(bundle(position, None, mutant::Mutant, &assets));
+            }
         }
     }
 }

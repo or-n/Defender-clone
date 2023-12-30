@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
     assets::{audio, GameAssets},
+    enemy::Enemy,
     map, minimap,
     player::*,
     projectile,
@@ -128,12 +129,25 @@ pub fn update(
 }
 
 fn laser_hit(
-    query: Query<(Entity, &Hittable<projectile::laser::Laser>), With<Person>>,
+    mut query: Query<
+        (
+            Entity,
+            &mut CharacterState,
+            &Hittable<projectile::laser::Laser>,
+        ),
+        With<Person>,
+    >,
+    mut enemy_query: Query<&mut Enemy>,
     mut commands: Commands,
 ) {
-    for (person_entity, hittable) in query.iter() {
+    for (person_entity, state, hittable) in query.iter() {
         if let Some(_) = hittable.hit_entity {
             commands.entity(person_entity).despawn();
+            if let CharacterState::CapturedBy(entity, _) = state {
+                if let Ok(mut enemy) = enemy_query.get_mut(*entity) {
+                    enemy.person = None;
+                }
+            }
         }
     }
 }
