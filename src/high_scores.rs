@@ -32,15 +32,19 @@ const PATH: &str = "assets/high_scores.txt";
 
 impl HighScores {
     pub fn load() -> Self {
-        //let input = std::fs::read_to_string(PATH).unwrap_or("".to_string());
-        let input = "".to_string();
+        let empty = "".to_string();
+        #[cfg(not(target_family = "wasm"))]
+        let input = std::fs::read_to_string(PATH).unwrap_or(empty);
+        #[cfg(target_family = "wasm")]
+        let input = empty;
         Self::read(input).unwrap_or(Self { scores: vec![] })
     }
 
     pub fn save(&mut self, new: u32) {
         self.scores.push(new);
         self.top10_ordered();
-        //let _ = std::fs::write(PATH, self.write());
+        #[cfg(not(target_family = "wasm"))]
+        let _ = std::fs::write(PATH, self.write());
     }
 
     fn read(input: String) -> Result<Self, Error> {
