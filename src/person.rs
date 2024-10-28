@@ -129,14 +129,7 @@ pub fn update(
 }
 
 fn laser_hit(
-    mut query: Query<
-        (
-            Entity,
-            &mut CharacterState,
-            &Hittable<projectile::laser::Laser>,
-        ),
-        With<Person>,
-    >,
+    query: Query<(Entity, &CharacterState, &Hittable<projectile::laser::Laser>), With<Person>>,
     mut enemy_query: Query<&mut Enemy>,
     mut commands: Commands,
 ) {

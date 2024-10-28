@@ -5,7 +5,7 @@ use utils::{bevy::state::Simulation, Side};
 #[derive(Clone, Copy)]
 enum Bind {
     Key(KeyCode),
-    Button(MouseButton),
+    _Button(MouseButton),
 }
 
 #[derive(Resource)]
@@ -89,7 +89,7 @@ fn input(
 ) {
     let get = |x| match x {
         Bind::Key(v) => key.pressed(v),
-        Bind::Button(v) => button.pressed(v),
+        Bind::_Button(v) => button.pressed(v),
     };
     commands.insert_resource(Controls {
         move_up: get(bindings.move_up),

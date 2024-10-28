@@ -37,7 +37,12 @@ impl HighScores {
         let input = std::fs::read_to_string(PATH).unwrap_or(empty);
         #[cfg(target_family = "wasm")]
         let input = empty;
-        Self::read(input).unwrap_or(Self { scores: vec![] })
+        match Self::read(input) {
+            Ok(scores) => scores,
+            Err(Error::Score(parse_error)) => {
+                panic!("invalid high scores: {:?}", parse_error)
+            }
+        }
     }
 
     pub fn save(&mut self, new: u32) {
