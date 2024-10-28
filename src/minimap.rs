@@ -57,8 +57,7 @@ pub fn redraw(
     let camera_position = camera_query.single().translation;
     let m = Ready::new(window_size.0, camera_position);
     let f = m.f();
-    {
-        //border
+    '_border: {
         let points = vec![Vec2::ZERO, Vec2::Y, Vec2::ONE, Vec2::X];
         gizmos.linestrip(points.iter().map(&f), style::MINIMAP_COLOR);
         gizmos.line(
@@ -67,8 +66,7 @@ pub fn redraw(
             style::MINIMAP_COLOR,
         );
     }
-    {
-        //view
+    '_view: {
         const HEIGHT: f32 = 0.1;
         let half_screen_x = 0.5 * window_size.0.x / map::SIZE;
         let min_x = 0.5 - half_screen_x;
@@ -85,8 +83,7 @@ pub fn redraw(
         }
         gizmos.linestrip(points.iter().map(&f), style::MINIMAP_VIEW_COLOR);
     }
-    {
-        // 0 mark
+    '_0_mark: {
         gizmos.line(
             f(&Vec2::new(m.offset, 0.0)),
             f(&Vec2::new(m.offset, 1.0)),
